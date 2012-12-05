@@ -1,1 +1,1 @@
-./Release/SSVOpenHexagon_LuaContext.o  
+./Release/LuaContext.o  

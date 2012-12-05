@@ -13,7 +13,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Vittorio
-Date                   :=11/27/12
+Date                   :=12/04/12
 CodeLitePath           :="c:\Program Files (x86)\CodeLite"
 LinkerName             :=g++
 SharedObjectLinkerName :=g++ -shared -fPIC
@@ -37,7 +37,7 @@ PCHCompileFlags        :=
 MakeDirCommand         :=makedir
 RcCmpOptions           := 
 RcCompilerName         :=windres
-LinkOptions            :=  -O2
+LinkOptions            :=  -shared
 IncludePath            :=  $(IncludeSwitch). $(IncludeSwitch)C:/lua/include 
 IncludePCH             := 
 RcIncludePath          := 
@@ -52,7 +52,7 @@ LibPath                := $(LibraryPathSwitch). $(LibraryPathSwitch)./Release
 AR       := ar rcus
 CXX      := g++
 CC       := gcc
-CXXFLAGS :=  -O3 -c -std=c++11 $(Preprocessors)
+CXXFLAGS :=  -O3 -std=c++11 -c $(Preprocessors)
 CFLAGS   :=   $(Preprocessors)
 
 
@@ -63,7 +63,7 @@ CodeLiteDir:=c:\Program Files (x86)\CodeLite
 WXWIN:=C:\wxWidgets
 UNIT_TEST_PP_SRC_DIR:=C:\UnitTest++-1.3
 WXCFG:=gcc_dll\mswu
-Objects=$(IntermediateDirectory)/SSVOpenHexagon_LuaContext$(ObjectSuffix) 
+Objects=$(IntermediateDirectory)/LuaContext$(ObjectSuffix) 
 
 ##
 ## Main Build Targets 
@@ -88,13 +88,13 @@ PreBuild:
 ##
 ## Objects
 ##
-$(IntermediateDirectory)/SSVOpenHexagon_LuaContext$(ObjectSuffix): ../SSVOpenHexagon/LuaContext.cpp $(IntermediateDirectory)/SSVOpenHexagon_LuaContext$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "D:/Vee/Software/GitHub/OHWorkspace/SSVOpenHexagon/LuaContext.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/SSVOpenHexagon_LuaContext$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/SSVOpenHexagon_LuaContext$(DependSuffix): ../SSVOpenHexagon/LuaContext.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/SSVOpenHexagon_LuaContext$(ObjectSuffix) -MF$(IntermediateDirectory)/SSVOpenHexagon_LuaContext$(DependSuffix) -MM "D:/Vee/Software/GitHub/OHWorkspace/SSVOpenHexagon/LuaContext.cpp"
+$(IntermediateDirectory)/LuaContext$(ObjectSuffix): LuaContext.cpp $(IntermediateDirectory)/LuaContext$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "D:/Vee/Software/GitHub/OHWorkspace/SSVLuaWrapper/LuaContext.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/LuaContext$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/LuaContext$(DependSuffix): LuaContext.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/LuaContext$(ObjectSuffix) -MF$(IntermediateDirectory)/LuaContext$(DependSuffix) -MM "D:/Vee/Software/GitHub/OHWorkspace/SSVLuaWrapper/LuaContext.cpp"
 
-$(IntermediateDirectory)/SSVOpenHexagon_LuaContext$(PreprocessSuffix): ../SSVOpenHexagon/LuaContext.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/SSVOpenHexagon_LuaContext$(PreprocessSuffix) "D:/Vee/Software/GitHub/OHWorkspace/SSVOpenHexagon/LuaContext.cpp"
+$(IntermediateDirectory)/LuaContext$(PreprocessSuffix): LuaContext.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/LuaContext$(PreprocessSuffix) "D:/Vee/Software/GitHub/OHWorkspace/SSVLuaWrapper/LuaContext.cpp"
 
 
 -include $(IntermediateDirectory)/*$(DependSuffix)
@@ -102,9 +102,9 @@ $(IntermediateDirectory)/SSVOpenHexagon_LuaContext$(PreprocessSuffix): ../SSVOpe
 ## Clean
 ##
 clean:
-	$(RM) $(IntermediateDirectory)/SSVOpenHexagon_LuaContext$(ObjectSuffix)
-	$(RM) $(IntermediateDirectory)/SSVOpenHexagon_LuaContext$(DependSuffix)
-	$(RM) $(IntermediateDirectory)/SSVOpenHexagon_LuaContext$(PreprocessSuffix)
+	$(RM) $(IntermediateDirectory)/LuaContext$(ObjectSuffix)
+	$(RM) $(IntermediateDirectory)/LuaContext$(DependSuffix)
+	$(RM) $(IntermediateDirectory)/LuaContext$(PreprocessSuffix)
 	$(RM) $(OutputFile)
 	$(RM) $(OutputFile)
 	$(RM) "D:\Vee\Software\GitHub\OHWorkspace\.build-release\SSVLuaWrapper"
