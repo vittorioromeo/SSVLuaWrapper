@@ -2,9 +2,9 @@
 ## Auto Generated makefile by CodeLite IDE
 ## any manual changes will be erased      
 ##
-## Release
+## Debug
 ProjectName            :=SSVLuaWrapper
-ConfigurationName      :=Release
+ConfigurationName      :=Debug
 WorkspacePath          := "D:\Vee\Software\GitHub\OHWorkspace"
 ProjectPath            := "D:\Vee\Software\GitHub\OHWorkspace\SSVLuaWrapper"
 IntermediateDirectory  :=./Release
@@ -13,7 +13,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Vittorio
-Date                   :=12/08/12
+Date                   :=12/17/12
 CodeLitePath           :="c:\Program Files (x86)\CodeLite"
 LinkerName             :=g++
 SharedObjectLinkerName :=g++ -shared -fPIC
@@ -27,7 +27,7 @@ OutputSwitch           :=-o
 LibraryPathSwitch      :=-L
 PreprocessorSwitch     :=-D
 SourceSwitch           :=-c 
-OutputFile             :=$(IntermediateDirectory)/$(ProjectName).dll
+OutputFile             :=$(IntermediateDirectory)/$(ProjectName).so
 Preprocessors          :=
 ObjectSwitch           :=-o 
 ArchiveOutputSwitch    := 
@@ -52,8 +52,8 @@ LibPath                := $(LibraryPathSwitch). $(LibraryPathSwitch)./Release
 AR       := ar rcus
 CXX      := g++
 CC       := gcc
-CXXFLAGS :=  -O3 -std=c++11 -c $(Preprocessors)
-CFLAGS   :=   $(Preprocessors)
+CXXFLAGS :=  -g -std=c++11 -c -O0 $(Preprocessors)
+CFLAGS   :=  -g $(Preprocessors)
 
 
 ##
@@ -76,8 +76,8 @@ $(OutputFile): $(IntermediateDirectory)/.d $(Objects)
 	@echo "" > $(IntermediateDirectory)/.d
 	@echo $(Objects) > $(ObjectsFileList)
 	$(SharedObjectLinkerName) $(OutputSwitch)$(OutputFile) @$(ObjectsFileList) $(LibPath) $(Libs) $(LinkOptions)
-	@$(MakeDirCommand) "D:\Vee\Software\GitHub\OHWorkspace\.build-release"
-	@echo rebuilt > "D:\Vee\Software\GitHub\OHWorkspace\.build-release\SSVLuaWrapper"
+	@$(MakeDirCommand) "D:\Vee\Software\GitHub\OHWorkspace\.build-debug"
+	@echo rebuilt > "D:\Vee\Software\GitHub\OHWorkspace\.build-debug\SSVLuaWrapper"
 
 $(IntermediateDirectory)/.d:
 	@$(MakeDirCommand) "./Release"
@@ -107,6 +107,6 @@ clean:
 	$(RM) $(IntermediateDirectory)/LuaContext$(PreprocessSuffix)
 	$(RM) $(OutputFile)
 	$(RM) $(OutputFile)
-	$(RM) "D:\Vee\Software\GitHub\OHWorkspace\.build-release\SSVLuaWrapper"
+	$(RM) "D:\Vee\Software\GitHub\OHWorkspace\.build-debug\SSVLuaWrapper"
 
 
