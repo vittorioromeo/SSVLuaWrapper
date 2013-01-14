@@ -13,7 +13,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Vittorio
-Date                   :=01/02/13
+Date                   :=01/13/13
 CodeLitePath           :="c:\Program Files (x86)\CodeLite"
 LinkerName             :=g++
 SharedObjectLinkerName :=g++ -shared -fPIC
@@ -32,7 +32,7 @@ Preprocessors          :=
 ObjectSwitch           :=-o 
 ArchiveOutputSwitch    := 
 PreprocessOnlySwitch   :=-E 
-ObjectsFileList        :="D:\Vee\Software\GitHub\OHWorkspace\SSVLuaWrapper\SSVLuaWrapper.txt"
+ObjectsFileList        :="SSVLuaWrapper.txt"
 PCHCompileFlags        :=
 MakeDirCommand         :=makedir
 RcCmpOptions           := 
@@ -63,7 +63,9 @@ CodeLiteDir:=c:\Program Files (x86)\CodeLite
 WXWIN:=C:\wxWidgets
 UNIT_TEST_PP_SRC_DIR:=C:\UnitTest++-1.3
 WXCFG:=gcc_dll\mswu
-Objects=$(IntermediateDirectory)/LuaContext$(ObjectSuffix) 
+Objects0=$(IntermediateDirectory)/LuaContext$(ObjectSuffix) 
+
+Objects=$(Objects0) 
 
 ##
 ## Main Build Targets 
@@ -74,10 +76,10 @@ all: $(OutputFile)
 $(OutputFile): $(IntermediateDirectory)/.d $(Objects) 
 	@$(MakeDirCommand) $(@D)
 	@echo "" > $(IntermediateDirectory)/.d
-	@echo $(Objects) > $(ObjectsFileList)
-	$(SharedObjectLinkerName) $(OutputSwitch)$(OutputFile) @$(ObjectsFileList) $(LibPath) $(Libs) $(LinkOptions)
-	@$(MakeDirCommand) "D:\Vee\Software\GitHub\OHWorkspace\.build-release"
-	@echo rebuilt > "D:\Vee\Software\GitHub\OHWorkspace\.build-release\SSVLuaWrapper"
+	@echo $(Objects0)  > $(ObjectsFileList)
+	$(SharedObjectLinkerName) $(OutputSwitch)$(OutputFile) $(Objects) $(LibPath) $(Libs) $(LinkOptions)
+	@$(MakeDirCommand) "D:\Vee\Software\GitHub\OHWorkspace/.build-release"
+	@echo rebuilt > "D:\Vee\Software\GitHub\OHWorkspace/.build-release/SSVLuaWrapper"
 
 $(IntermediateDirectory)/.d:
 	@$(MakeDirCommand) "./Release"
@@ -91,10 +93,10 @@ PreBuild:
 $(IntermediateDirectory)/LuaContext$(ObjectSuffix): LuaContext.cpp $(IntermediateDirectory)/LuaContext$(DependSuffix)
 	$(CXX) $(IncludePCH) $(SourceSwitch) "D:/Vee/Software/GitHub/OHWorkspace/SSVLuaWrapper/LuaContext.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/LuaContext$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/LuaContext$(DependSuffix): LuaContext.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/LuaContext$(ObjectSuffix) -MF$(IntermediateDirectory)/LuaContext$(DependSuffix) -MM "D:/Vee/Software/GitHub/OHWorkspace/SSVLuaWrapper/LuaContext.cpp"
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/LuaContext$(ObjectSuffix) -MF$(IntermediateDirectory)/LuaContext$(DependSuffix) -MM "LuaContext.cpp"
 
 $(IntermediateDirectory)/LuaContext$(PreprocessSuffix): LuaContext.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/LuaContext$(PreprocessSuffix) "D:/Vee/Software/GitHub/OHWorkspace/SSVLuaWrapper/LuaContext.cpp"
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/LuaContext$(PreprocessSuffix) "LuaContext.cpp"
 
 
 -include $(IntermediateDirectory)/*$(DependSuffix)
@@ -107,6 +109,6 @@ clean:
 	$(RM) $(IntermediateDirectory)/LuaContext$(PreprocessSuffix)
 	$(RM) $(OutputFile)
 	$(RM) $(OutputFile)
-	$(RM) "D:\Vee\Software\GitHub\OHWorkspace\.build-release\SSVLuaWrapper"
+	$(RM) "../.build-release/SSVLuaWrapper"
 
 
