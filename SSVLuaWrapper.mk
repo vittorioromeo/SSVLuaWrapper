@@ -13,8 +13,8 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Vittorio
-Date                   :=01/15/13
-CodeLitePath           :="c:\Program Files (x86)\CodeLite"
+Date                   :=11/02/2013
+CodeLitePath           :="C:\Program Files (x86)\CodeLite"
 LinkerName             :=g++
 SharedObjectLinkerName :=g++ -shared -fPIC
 ObjectSuffix           :=.o
@@ -38,7 +38,7 @@ MakeDirCommand         :=makedir
 RcCmpOptions           := 
 RcCompilerName         :=windres
 LinkOptions            :=  -shared
-IncludePath            :=  $(IncludeSwitch). $(IncludeSwitch)C:/lua/include 
+IncludePath            :=  $(IncludeSwitch). $(IncludeSwitch)C:/lua/include $(IncludeSwitch)C:/lua 
 IncludePCH             := 
 RcIncludePath          := 
 Libs                   := $(LibrarySwitch)lua5.1 $(LibrarySwitch)lua51 
@@ -52,17 +52,15 @@ LibPath                := $(LibraryPathSwitch). $(LibraryPathSwitch)./Release
 AR       := ar rcus
 CXX      := g++
 CC       := gcc
-CXXFLAGS :=  -O3 -std=c++11 -c $(Preprocessors)
+CXXFLAGS :=  -W -pedantic -O3 -Wextra -std=c++11 -Wall $(Preprocessors)
 CFLAGS   :=   $(Preprocessors)
 
 
 ##
 ## User defined environment variables
 ##
-CodeLiteDir:=c:\Program Files (x86)\CodeLite
-WXWIN:=C:\wxWidgets
+CodeLiteDir:=C:\Program Files (x86)\CodeLite
 UNIT_TEST_PP_SRC_DIR:=C:\UnitTest++-1.3
-WXCFG:=gcc_dll\mswu
 Objects0=$(IntermediateDirectory)/LuaContext$(ObjectSuffix) 
 
 Objects=$(Objects0) 
@@ -77,7 +75,7 @@ $(OutputFile): $(IntermediateDirectory)/.d $(Objects)
 	@$(MakeDirCommand) $(@D)
 	@echo "" > $(IntermediateDirectory)/.d
 	@echo $(Objects0)  > $(ObjectsFileList)
-	$(SharedObjectLinkerName) $(OutputSwitch)$(OutputFile) $(Objects) $(LibPath) $(Libs) $(LinkOptions)
+	$(SharedObjectLinkerName) $(OutputSwitch)$(OutputFile) @$(ObjectsFileList) $(LibPath) $(Libs) $(LinkOptions)
 	@$(MakeDirCommand) "D:\Vee\Software\GitHub\OHWorkspace/.build-release"
 	@echo rebuilt > "D:\Vee\Software\GitHub\OHWorkspace/.build-release/SSVLuaWrapper"
 

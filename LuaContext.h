@@ -50,14 +50,6 @@ extern "C" {
 #       include <lua5.1/lauxlib.h>
 }
 
-#if defined(__GNUC__) && __GNUC__ <= 4 && __GNUC_MINOR__ <= 5
-#       define nullptr          0
-#endif
-
-#if defined(_MSC_VER) && _MSC_VER < 1700
-#       define NO_VARIADIC_TEMPLATE
-#endif
-
 
 namespace Lua {
         /**     \brief Defines a Lua context
@@ -102,34 +94,16 @@ namespace Lua {
                 T                       executeCode(const std::string& code)                            { std::istringstream str(code); return executeCode<T>(str); }
 
 
-                /// \brief Tells that lua will be allowed to access an object's function
-#               ifdef NO_VARIADIC_TEMPLATE
-                        template<typename T, typename R>
-                        void                            registerFunction(const std::string& name, R (T::*f)())                                  { _registerFunction(name, [f](std::shared_ptr<T> ptr) { return ((*ptr).*f)(); }); }
-                        template<typename T, typename R>
-                        void                            registerFunction(const std::string& name, R (T::*f)() const)                                    { _registerFunction(name, [f](std::shared_ptr<T> ptr) { return ((*ptr).*f)(); }); }
-                        template<typename T, typename R, typename P1>
-                        void                            registerFunction(const std::string& name, R (T::*f)(P1))                                        { _registerFunction(name, [f](std::shared_ptr<T> ptr, P1 p1) { return ((*ptr).*f)(p1); }); }
-                        template<typename T, typename R, typename P1>
-                        void                            registerFunction(const std::string& name, R (T::*f)(P1) const)                                  { _registerFunction(name, [f](std::shared_ptr<T> ptr, P1 p1) { return ((*ptr).*f)(p1); }); }
-                        template<typename T, typename R, typename P1, typename P2>
-                        void                            registerFunction(const std::string& name, R (T::*f)(P1,P2))                                     { _registerFunction(name, [f](std::shared_ptr<T> ptr, P1 p1, P2 p2) { return ((*ptr).*f)(p1,p2); }); }
-                        template<typename T, typename R, typename P1, typename P2>
-                        void                            registerFunction(const std::string& name, R (T::*f)(P1,P2) const)                                       { _registerFunction(name, [f](std::shared_ptr<T> ptr, P1 p1, P2 p2) { return ((*ptr).*f)(p1,p2); }); }
-                        template<typename T, typename R, typename P1, typename P2, typename P3>
-                        void                            registerFunction(const std::string& name, R (T::*f)(P1,P2,P3))                                  { _registerFunction(name, [f](std::shared_ptr<T> ptr, P1 p1, P2 p2, P3 p3) { return ((*ptr).*f)(p1,p2,p3); }); }
-                        template<typename T, typename R, typename P1, typename P2, typename P3, typename P4>
-                        void                            registerFunction(const std::string& name, R (T::*f)(P1,P2,P3,P4))                                       { _registerFunction(name, [f](std::shared_ptr<T> ptr, P1 p1, P2 p2, P3 p3, P4 p4) { return ((*ptr).*f)(p1,p2,p3,p4); }); }
-#               else
-                        template<typename T, typename R, typename... Args>
-                        void                            registerFunction(const std::string& name, R (T::*f)(Args...))                                           { _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
-                        template<typename T, typename R, typename... Args>
-                        void                            registerFunction(const std::string& name, R (T::*f)(Args...) const)                                     { _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
-                        template<typename T, typename R, typename... Args>
-                        void                            registerFunction(const std::string& name, R (T::*f)(Args...) volatile)                          { _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
-                        template<typename T, typename R, typename... Args>
-                        void                            registerFunction(const std::string& name, R (T::*f)(Args...) const volatile)            { _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
-#               endif
+                /// \brief Tells that lua will be allowed to access an object's function            
+				template<typename T, typename R, typename... Args>
+				void                            registerFunction(const std::string& name, R (T::*f)(Args...))                                           { _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
+				template<typename T, typename R, typename... Args>
+				void                            registerFunction(const std::string& name, R (T::*f)(Args...) const)                                     { _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
+				template<typename T, typename R, typename... Args>
+				void                            registerFunction(const std::string& name, R (T::*f)(Args...) volatile)                          { _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
+				template<typename T, typename R, typename... Args>
+				void                            registerFunction(const std::string& name, R (T::*f)(Args...) const volatile)            { _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
+
 
 
                 /// \brief Adds a custom function to a type determined using the function's first parameter
@@ -145,64 +119,11 @@ namespace Lua {
                 /// \details Template parameter of the function should be the expected return type (tuples and void are supported)
                 /// \param variableName Name of the variable containing the function to call
                 /// \param ... Parameters to pass to the function
-#               ifdef NO_VARIADIC_TEMPLATE
-                        template<typename R>
-                        R callLuaFunction(const std::string& variableName) {
-                                _getGlobal(variableName);
-                                return _call<R>(std::tuple<>());
-                        }
-                        template<typename R, typename T1>
-                        R callLuaFunction(const std::string& variableName, const T1& t1) {
-                                _getGlobal(variableName);
-                                return _call<R>(std::make_tuple(t1));
-                        }
-                        template<typename R, typename T1, typename T2>
-                        R callLuaFunction(const std::string& variableName, const T1& t1, const T2& t2) {
-                                _getGlobal(variableName);
-                                return _call<R>(std::make_tuple(t1,t2));
-                        }
-                        template<typename R, typename T1, typename T2, typename T3>
-                        R callLuaFunction(const std::string& variableName, const T1& t1, const T2& t2, const T3& t3) {
-                                _getGlobal(variableName);
-                                return _call<R>(std::make_tuple(t1,t2,t3));
-                        }
-                        template<typename R, typename T1, typename T2, typename T3, typename T4>
-                        R callLuaFunction(const std::string& variableName, const T1& t1, const T2& t2, const T3& t3, const T4& t4) {
-                                _getGlobal(variableName);
-                                return _call<R>(std::make_tuple(t1,t2,t3,t4));
-                        }
-                        template<typename R, typename T1, typename T2, typename T3, typename T4, typename T5>
-                        R callLuaFunction(const std::string& variableName, const T1& t1, const T2& t2, const T3& t3, const T4& t4, const T5& t5) {
-                                _getGlobal(variableName);
-                                return _call<R>(std::make_tuple(t1,t2,t3,t4,t5));
-                        }
-                        template<typename R, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-                        R callLuaFunction(const std::string& variableName, const T1& t1, const T2& t2, const T3& t3, const T4& t4, const T5& t5, const T6& t6) {
-                                _getGlobal(variableName);
-                                return _call<R>(std::make_tuple(t1,t2,t3,t4,t5,t6));
-                        }
-                        template<typename R, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-                        R callLuaFunction(const std::string& variableName, const T1& t1, const T2& t2, const T3& t3, const T4& t4, const T5& t5, const T6& t6, const T7& t7) {
-                                _getGlobal(variableName);
-                                return _call<R>(std::make_tuple(t1,t2,t3,t4,t5,t6,t7));
-                        }
-                        template<typename R, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-                        R callLuaFunction(const std::string& variableName, const T1& t1, const T2& t2, const T3& t3, const T4& t4, const T5& t5, const T6& t6, const T7& t7, const T8& t8) {
-                                _getGlobal(variableName);
-                                return _call<R>(std::make_tuple(t1,t2,t3,t4,t5,t6,t7,t8));
-                        }
-                        template<typename R, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
-                        R callLuaFunction(const std::string& variableName, const T1& t1, const T2& t2, const T3& t3, const T4& t4, const T5& t5, const T6& t6, const T7& t7, const T8& t8, const T9& t9) {
-                                _getGlobal(variableName);
-                                return _call<R>(std::make_tuple(t1,t2,t3,t4,t5,t6,t7,t8,t9));
-                        }
-#               else
-                        template<typename R, typename... Args>
-                        R callLuaFunction(const std::string& variableName, const Args&... args) {
-                                _getGlobal(variableName);
-                                return _call<R>(std::make_tuple(args...));
-                        }
-#               endif
+				template<typename R, typename... Args>
+				R callLuaFunction(const std::string& variableName, const Args&... args) {
+						_getGlobal(variableName);
+						return _call<R>(std::make_tuple(args...));
+				}
 
 
                 /// \brief Returns true if the value of the variable is an array \param variableName Name of the variable to check
@@ -271,7 +192,7 @@ namespace Lua {
                                 throw;
                         }
                 }
-                void _readTopAndPop(int nb, void* ptr = nullptr) const {
+                void _readTopAndPop(int nb, void*) const {
                         lua_pop(_state, nb);
                 }
 
@@ -370,37 +291,26 @@ namespace Lua {
                 public:
                          Table() {}
                          Table(Table&& t)                               { swap(t, *this); }
-                         Table& operator=(Table&& t)    { swap(t, *this); }
+                         Table& operator=(Table&& t)    { swap(t, *this); return *this; }
                         ~Table() {}
 
-#                       ifndef NO_VARIADIC_TEMPLATE
-                                template<typename... Args>
-                                explicit Table(Args... args)            { insert(args...); }
-#                       endif
+						template<typename... Args>
+						explicit Table(Args... args)            { insert(args...); }
 
                         friend void swap(Table& a, Table& b) {
                                 std::swap(a._elements, b._elements);
                         }
 
-#                       ifndef NO_VARIADIC_TEMPLATE
-                                template<typename Key, typename Value, typename... Args>
-                                void insert(Key k, Value v, Args... args) {
-                                        typedef typename ToPushableType<Key>::type RKey;
-                                        typedef typename ToPushableType<Value>::type RValue;
-                                        _elements.push_back(std::unique_ptr<ElementBase>(new Element<RKey,RValue>(std::move(k), std::move(v))));
-                                        insert(args...);
-                                }
+						template<typename Key, typename Value, typename... Args>
+						void insert(Key k, Value v, Args... args) {
+								typedef typename ToPushableType<Key>::type RKey;
+								typedef typename ToPushableType<Value>::type RValue;
+								_elements.push_back(std::unique_ptr<ElementBase>(new Element<RKey,RValue>(std::move(k), std::move(v))));
+								insert(args...);
+						}
 
-                                void insert() {
-                                }
-#                       else
-                                template<typename Key, typename Value>
-                                void insert(Key k, Value v) {
-                                        typedef typename ToPushableType<Key>::type RKey;
-                                        typedef typename ToPushableType<Value>::type RValue;
-                                        _elements.push_back(std::unique_ptr<ElementBase>(new Element<RKey,RValue>(std::move(k), std::move(v))));
-                                }
-#                       endif
+						void insert() {
+						}
 
                         template<typename Value, typename Key>
                         Value read(const Key& key) {
@@ -491,15 +401,13 @@ namespace Lua {
                 }
 
                 // using variadic templates, you can push multiple values at once
-#               ifndef NO_VARIADIC_TEMPLATE
-                        template<typename T1, typename T2, typename... Args>
-                        int _push(T1&& v1, T2&& v2, Args&&... args) {
-                                int p = _push(std::forward<T1>(v1));
-                                try { p += _push(std::forward<T2>(v2), args...);
-                                } catch(...) { lua_pop(_state, p); throw; }
-                                return p;
-                        }
-#               endif
+				template<typename T1, typename T2, typename... Args>
+				int _push(T1&& v1, T2&& v2, Args&&... args) {
+						int p = _push(std::forward<T1>(v1));
+						try { p += _push(std::forward<T2>(v2), args...);
+						} catch(...) { lua_pop(_state, p); throw; }
+						return p;
+				}
 
                 // pushing tables
                 int _push(const Table& table) {
@@ -704,101 +612,14 @@ namespace Lua {
                 }
 
                 // pushing tuples is also possible, though a bit complicated
-#               ifndef NO_VARIADIC_TEMPLATE
-                        template<typename... Args, int N = sizeof...(Args)>
-                        int _push(const std::tuple<Args...>& t, std::integral_constant<int,N>* = nullptr, typename std::enable_if<(N >= 1)>::type* = nullptr) {
-                                return _push(t, static_cast<std::integral_constant<int,N-1>*>(nullptr)) + _push(std::get<N-1>(t));
-                        }
-                        template<typename... Args, int N = sizeof...(Args)>
-                        int _push(const std::tuple<Args...>& t, std::integral_constant<int,N>* = nullptr, typename std::enable_if<(N == 0)>::type* = nullptr) {
-                                return 0;
-                        }
-#               else
-                        int _push(std::tuple<>) {
-                                return 0;
-                        }
-                        template<typename T1>
-                        int _push(std::tuple<T1> t) {
-                                return _push(std::move(std::get<0>(t)));
-                        }
-                        template<typename T1, typename T2>
-                        int _push(std::tuple<T1,T2> t) {
-                                int p = _push(std::move(std::get<0>(t)));
-                                p += _push(std::move(std::get<1>(t)));
-                                return p;
-                        }
-                        template<typename T1, typename T2, typename T3>
-                        int _push(std::tuple<T1,T2,T3> t) {
-                                int p = _push(std::move(std::get<0>(t)));
-                                p += _push(std::move(std::get<1>(t)));
-                                p += _push(std::move(std::get<2>(t)));
-                                return p;
-                        }
-                        template<typename T1, typename T2, typename T3, typename T4>
-                        int _push(std::tuple<T1,T2,T3,T4> t) {
-                                int p = _push(std::move(std::get<0>(t)));
-                                p += _push(std::move(std::get<1>(t)));
-                                p += _push(std::move(std::get<2>(t)));
-                                p += _push(std::move(std::get<3>(t)));
-                                return p;
-                        }
-                        template<typename T1, typename T2, typename T3, typename T4, typename T5>
-                        int _push(std::tuple<T1,T2,T3,T4,T5> t) {
-                                int p = _push(std::move(std::get<0>(t)));
-                                p += _push(std::move(std::get<1>(t)));
-                                p += _push(std::move(std::get<2>(t)));
-                                p += _push(std::move(std::get<3>(t)));
-                                p += _push(std::move(std::get<4>(t)));
-                                return p;
-                        }
-                        template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-                        int _push(std::tuple<T1,T2,T3,T4,T5,T6> t) {
-                                int p = _push(std::move(std::get<0>(t)));
-                                p += _push(std::move(std::get<1>(t)));
-                                p += _push(std::move(std::get<2>(t)));
-                                p += _push(std::move(std::get<3>(t)));
-                                p += _push(std::move(std::get<4>(t)));
-                                p += _push(std::move(std::get<5>(t)));
-                                return p;
-                        }
-                        template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-                        int _push(std::tuple<T1,T2,T3,T4,T5,T6,T7> t) {
-                                int p = _push(std::move(std::get<0>(t)));
-                                p += _push(std::move(std::get<1>(t)));
-                                p += _push(std::move(std::get<2>(t)));
-                                p += _push(std::move(std::get<3>(t)));
-                                p += _push(std::move(std::get<4>(t)));
-                                p += _push(std::move(std::get<5>(t)));
-                                p += _push(std::move(std::get<6>(t)));
-                                return p;
-                        }
-                        template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-                        int _push(std::tuple<T1,T2,T3,T4,T5,T6,T7,T8> t) {
-                                int p = _push(std::move(std::get<0>(t)));
-                                p += _push(std::move(std::get<1>(t)));
-                                p += _push(std::move(std::get<2>(t)));
-                                p += _push(std::move(std::get<3>(t)));
-                                p += _push(std::move(std::get<4>(t)));
-                                p += _push(std::move(std::get<5>(t)));
-                                p += _push(std::move(std::get<6>(t)));
-                                p += _push(std::move(std::get<7>(t)));
-                                return p;
-                        }
-                        template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
-                        int _push(std::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9> t) {
-                                int p = _push(std::move(std::get<0>(t)));
-                                p += _push(std::move(std::get<1>(t)));
-                                p += _push(std::move(std::get<2>(t)));
-                                p += _push(std::move(std::get<3>(t)));
-                                p += _push(std::move(std::get<4>(t)));
-                                p += _push(std::move(std::get<5>(t)));
-                                p += _push(std::move(std::get<6>(t)));
-                                p += _push(std::move(std::get<7>(t)));
-                                p += _push(std::move(std::get<8>(t)));
-                                return p;
-                        }
-#               endif
-
+				template<typename... Args, int N = sizeof...(Args)>
+				int _push(const std::tuple<Args...>& t, std::integral_constant<int,N>* = nullptr, typename std::enable_if<(N >= 1)>::type* = nullptr) {
+						return _push(t, static_cast<std::integral_constant<int,N-1>*>(nullptr)) + _push(std::get<N-1>(t));
+				}
+				template<typename... Args, int N = sizeof...(Args)>
+				int _push(const std::tuple<Args...>&, std::integral_constant<int,N>* = nullptr, typename std::enable_if<(N == 0)>::type* = nullptr) {
+						return 0;
+				}
 
                 /**************************************************/
                 /*                READ FUNCTIONS                  */
@@ -807,7 +628,7 @@ namespace Lua {
                 // eg. if you want an int, pass "static_cast<int*>(nullptr)" as second parameter
 
                 // reading void
-                void _read(int index, void const* = nullptr) const {
+                void _read(int, void const* = nullptr) const {
                 }
 
                 // first the integer types
@@ -922,55 +743,14 @@ namespace Lua {
                 }
 
                 // reading a tuple
-#               ifndef NO_VARIADIC_TEMPLATE
-                        template<typename First, typename... Args>
-                        std::tuple<First,Args...> _read(int index, std::tuple<First, Args...> const* = nullptr) const {
-                                return std::tuple_cat(std::make_tuple(_read(index, static_cast<First*>(nullptr))), _read(index + 1, static_cast<std::tuple<Args...>*>(nullptr)));
-                        }
-                        std::tuple<> _read(int index, std::tuple<> const* = nullptr) const {
-                                return std::tuple<>();
-                        }
-#               else
-                        std::tuple<> _read(int index, std::tuple<> const* = nullptr) const {
-                                return std::tuple<>();
-                        }
-                        template<typename T1>
-                        std::tuple<T1> _read(int index, std::tuple<T1> const* = nullptr) const {
-                                return std::make_tuple(_read(index, (T1*)nullptr));
-                        }
-                        template<typename T1, typename T2>
-                        std::tuple<T1,T2> _read(int index, std::tuple<T1,T2> const* = nullptr) const {
-                                return std::make_tuple(_read(index, (T1*)nullptr), _read(index+1, (T2*)nullptr));
-                        }
-                        template<typename T1, typename T2, typename T3>
-                        std::tuple<T1,T2,T3> _read(int index, std::tuple<T1,T2,T3> const* = nullptr) const {
-                                return std::make_tuple(_read(index, (T1*)nullptr), _read(index+1, (T2*)nullptr), _read(index+2, (T3*)nullptr));
-                        }
-                        template<typename T1, typename T2, typename T3, typename T4>
-                        std::tuple<T1,T2,T3,T4> _read(int index, std::tuple<T1,T2,T3,T4> const* = nullptr) const {
-                                return std::make_tuple(_read(index, (T1*)nullptr), _read(index+1, (T2*)nullptr), _read(index+2, (T3*)nullptr), _read(index+3, (T4*)nullptr));
-                        }
-                        template<typename T1, typename T2, typename T3, typename T4, typename T5>
-                        std::tuple<T1,T2,T3,T4,T5> _read(int index, std::tuple<T1,T2,T3,T4,T5> const* = nullptr) const {
-                                return std::make_tuple(_read(index, (T1*)nullptr), _read(index+1, (T2*)nullptr), _read(index+2, (T3*)nullptr), _read(index+3, (T4*)nullptr), _read(index+4, (T5*)nullptr));
-                        }
-                        template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-                        std::tuple<T1,T2,T3,T4,T5,T6> _read(int index, std::tuple<T1,T2,T3,T4,T5,T6> const* = nullptr) const {
-                                return std::make_tuple(_read(index, (T1*)nullptr), _read(index+1, (T2*)nullptr), _read(index+2, (T3*)nullptr), _read(index+3, (T4*)nullptr), _read(index+4, (T5*)nullptr), _read(index+5, (T6*)nullptr));
-                        }
-                        template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-                        std::tuple<T1,T2,T3,T4,T5,T6,T7> _read(int index, std::tuple<T1,T2,T3,T4,T5,T6,T7> const* = nullptr) const {
-                                return std::make_tuple(_read(index, (T1*)nullptr), _read(index+1, (T2*)nullptr), _read(index+2, (T3*)nullptr), _read(index+3, (T4*)nullptr), _read(index+4, (T5*)nullptr), _read(index+5, (T6*)nullptr), _read(index+6, (T7*)nullptr));
-                        }
-                        template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-                        std::tuple<T1,T2,T3,T4,T5,T6,T7,T8> _read(int index, std::tuple<T1,T2,T3,T4,T5,T6,T7,T8> const* = nullptr) const {
-                                return std::make_tuple(_read(index, (T1*)nullptr), _read(index+1, (T2*)nullptr), _read(index+2, (T3*)nullptr), _read(index+3, (T4*)nullptr), _read(index+4, (T5*)nullptr), _read(index+5, (T6*)nullptr), _read(index+6, (T7*)nullptr), _read(index+7, (T8*)nullptr));
-                        }
-                        template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
-                        std::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9> _read(int index, std::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9> const* = nullptr) const {
-                                return std::make_tuple(_read(index, (T1*)nullptr), _read(index+1, (T2*)nullptr), _read(index+2, (T3*)nullptr), _read(index+3, (T4*)nullptr), _read(index+4, (T5*)nullptr), _read(index+5, (T6*)nullptr), _read(index+6, (T7*)nullptr), _read(index+7, (T8*)nullptr), _read(index+8, (T9*)nullptr));
-                        }
-#               endif
+				template<typename First, typename... Args>
+				std::tuple<First,Args...> _read(int index, std::tuple<First, Args...> const* = nullptr) const {
+						return std::tuple_cat(std::make_tuple(_read(index, static_cast<First*>(nullptr))), _read(index + 1, static_cast<std::tuple<Args...>*>(nullptr)));
+				}
+				std::tuple<> _read(int, std::tuple<> const* = nullptr) const {
+						return std::tuple<>();
+				}
+
 
 
                 /**************************************************/
@@ -1158,91 +938,25 @@ namespace Lua {
 
         // this structure takes a member function pointer and returns its base type
         // typically used on a functor T, like: std::function<RemoveMemberPtr<decltype(&T::operator())>::type>
-#       ifndef NO_VARIADIC_TEMPLATE
-                template<typename R, typename T, typename... Args>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(Args...)>                                                   { typedef R (type)(Args...); };
-                template<typename R, typename T, typename... Args>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(Args...) const>                                             { typedef R (type)(Args...); };
-                template<typename R, typename T, typename... Args>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(Args...) volatile>                                  { typedef R (type)(Args...); };
-                template<typename R, typename T, typename... Args>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(Args...) const volatile>                    { typedef R (type)(Args...); };
-#       else
-                template<typename R, typename T>
-                struct LuaContext::RemoveMemberPtr<R (T::*)()>                                                                  { typedef R (type)(); };
-                template<typename R, typename T>
-                struct LuaContext::RemoveMemberPtr<R (T::*)() const>                                                    { typedef R (type)(); };
-                template<typename R, typename T, typename P1>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1)>                                                                { typedef R (type)(P1); };
-                template<typename R, typename T, typename P1>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1) const>                                                  { typedef R (type)(P1); };
-                template<typename R, typename T, typename P1, typename P2>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2)>                                                             { typedef R (type)(P1,P2); };
-                template<typename R, typename T, typename P1, typename P2>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2) const>                                               { typedef R (type)(P1,P2); };
-                template<typename R, typename T, typename P1, typename P2, typename P3>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2,P3)>                                                  { typedef R (type)(P1,P2,P3); };
-                template<typename R, typename T, typename P1, typename P2, typename P3>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2,P3) const>                                    { typedef R (type)(P1,P2,P3); };
-                template<typename R, typename T, typename P1, typename P2, typename P3, typename P4>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2,P3,P4)>                                               { typedef R (type)(P1,P2,P3,P4); };
-                template<typename R, typename T, typename P1, typename P2, typename P3, typename P4>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2,P3,P4) const>                                 { typedef R (type)(P1,P2,P3,P4); };
-                template<typename R, typename T, typename P1, typename P2, typename P3, typename P4, typename P5>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2,P3,P4,P5)>                                    { typedef R (type)(P1,P2,P3,P4,P5); };
-                template<typename R, typename T, typename P1, typename P2, typename P3, typename P4, typename P5>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2,P3,P4,P5) const>                              { typedef R (type)(P1,P2,P3,P4,P5); };
-                template<typename R, typename T, typename P1, typename P2, typename P3, typename P4, typename P5, typename P6>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2,P3,P4,P5,P6)>                                 { typedef R (type)(P1,P2,P3,P4,P5,P6); };
-                template<typename R, typename T, typename P1, typename P2, typename P3, typename P4, typename P5, typename P6>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2,P3,P4,P5,P6) const>                   { typedef R (type)(P1,P2,P3,P4,P5,P6); };
-                template<typename R, typename T, typename P1, typename P2, typename P3, typename P4, typename P5, typename P6, typename P7>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2,P3,P4,P5,P6,P7)>                              { typedef R (type)(P1,P2,P3,P4,P5,P6,P7); };
-                template<typename R, typename T, typename P1, typename P2, typename P3, typename P4, typename P5, typename P6, typename P7>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2,P3,P4,P5,P6,P7) const>                { typedef R (type)(P1,P2,P3,P4,P5,P6,P7); };
-                template<typename R, typename T, typename P1, typename P2, typename P3, typename P4, typename P5, typename P6, typename P7, typename P8>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2,P3,P4,P5,P6,P7,P8)>                   { typedef R (type)(P1,P2,P3,P4,P5,P6,P7,P8); };
-                template<typename R, typename T, typename P1, typename P2, typename P3, typename P4, typename P5, typename P6, typename P7, typename P8>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2,P3,P4,P5,P6,P7,P8) const>             { typedef R (type)(P1,P2,P3,P4,P5,P6,P7,P8); };
-                template<typename R, typename T, typename P1, typename P2, typename P3, typename P4, typename P5, typename P6, typename P7, typename P8, typename P9>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2,P3,P4,P5,P6,P7,P8,P9)>                { typedef R (type)(P1,P2,P3,P4,P5,P6,P7,P8,P9); };
-                template<typename R, typename T, typename P1, typename P2, typename P3, typename P4, typename P5, typename P6, typename P7, typename P8, typename P9>
-                struct LuaContext::RemoveMemberPtr<R (T::*)(P1,P2,P3,P4,P5,P6,P7,P8,P9) const>  { typedef R (type)(P1,P2,P3,P4,P5,P6,P7,P8,P9); };
-#       endif
+
+		template<typename R, typename T, typename... Args>
+		struct LuaContext::RemoveMemberPtr<R (T::*)(Args...)>                                                   { typedef R (type)(Args...); };
+		template<typename R, typename T, typename... Args>
+		struct LuaContext::RemoveMemberPtr<R (T::*)(Args...) const>                                             { typedef R (type)(Args...); };
+		template<typename R, typename T, typename... Args>
+		struct LuaContext::RemoveMemberPtr<R (T::*)(Args...) volatile>                                  { typedef R (type)(Args...); };
+		template<typename R, typename T, typename... Args>
+		struct LuaContext::RemoveMemberPtr<R (T::*)(Args...) const volatile>                    { typedef R (type)(Args...); };
+
 
 
         // this structure takes a template parameter T
         // if T is a tuple, it returns T ; if T is not a tuple, it returns std::tuple<T>
         // you have to use this structure because std::tuple<std::tuple<...>> triggers a bug in both MSVC++ and GCC
-#       ifndef NO_VARIADIC_TEMPLATE
-                template<typename T> struct LuaContext::Tupleizer                                               { typedef std::tuple<T> type; };
-                template<typename... Args>
-                struct LuaContext::Tupleizer<std::tuple<Args...>>                                               { typedef std::tuple<Args...> type; };
-                template<> struct LuaContext::Tupleizer<void>                                                   { typedef std::tuple<> type; };
-#       else
-                template<typename T> struct LuaContext::Tupleizer                                               { typedef std::tuple<T> type; };
-                template<> struct LuaContext::Tupleizer<void>                                                   { typedef std::tuple<> type; };
-                template<> struct LuaContext::Tupleizer<std::tuple<>>                                   { typedef std::tuple<> type; };
-                template<typename T1>
-                struct LuaContext::Tupleizer<std::tuple<T1>>                                                    { typedef std::tuple<T1> type; };
-                template<typename T1, typename T2>
-                struct LuaContext::Tupleizer<std::tuple<T1,T2>>                                                 { typedef std::tuple<T1,T2> type; };
-                template<typename T1, typename T2, typename T3>
-                struct LuaContext::Tupleizer<std::tuple<T1,T2,T3>>                                              { typedef std::tuple<T1,T2,T3> type; };
-                template<typename T1, typename T2, typename T3, typename T4>
-                struct LuaContext::Tupleizer<std::tuple<T1,T2,T3,T4>>                                   { typedef std::tuple<T1,T2,T3,T4> type; };
-                template<typename T1, typename T2, typename T3, typename T4, typename T5>
-                struct LuaContext::Tupleizer<std::tuple<T1,T2,T3,T4,T5>>                                { typedef std::tuple<T1,T2,T3,T4,T5> type; };
-                template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-                struct LuaContext::Tupleizer<std::tuple<T1,T2,T3,T4,T5,T6>>                             { typedef std::tuple<T1,T2,T3,T4,T5,T6> type; };
-                template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-                struct LuaContext::Tupleizer<std::tuple<T1,T2,T3,T4,T5,T6,T7>>                  { typedef std::tuple<T1,T2,T3,T4,T5,T6,T7> type; };
-                template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-                struct LuaContext::Tupleizer<std::tuple<T1,T2,T3,T4,T5,T6,T7,T8>>               { typedef std::tuple<T1,T2,T3,T4,T5,T6,T7,T8> type; };
-                template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
-                struct LuaContext::Tupleizer<std::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9>>    { typedef std::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9> type; };
-#       endif
-
+		template<typename T> struct LuaContext::Tupleizer                                               { typedef std::tuple<T> type; };
+		template<typename... Args>
+		struct LuaContext::Tupleizer<std::tuple<Args...>>                                               { typedef std::tuple<Args...> type; };
+		template<> struct LuaContext::Tupleizer<void>                                                   { typedef std::tuple<> type; };
 }
 
 

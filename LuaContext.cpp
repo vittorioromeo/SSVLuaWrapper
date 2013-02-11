@@ -32,7 +32,7 @@ Lua::LuaContext::LuaContext(bool openDefaultLibs) {
         // we use our custom allocator instead of luaL_newstate, so we
         //   may trace the memory usage in the future
         struct Allocator {
-                static void* allocator(void *ud, void *ptr, size_t osize, size_t nsize) {
+                static void* allocator(void*, void *ptr, size_t, size_t nsize) {
                         if (nsize == 0) {
                                 free(ptr);
                                 return nullptr;
@@ -61,7 +61,7 @@ void Lua::LuaContext::_load(std::istream& code) {
                 char                            buffer[512];
 
                 // read function ; "data" must be an instance of Reader
-                static const char* read(lua_State* l, void* data, size_t* size) {
+                static const char* read(lua_State*, void* data, size_t* size) {
                         assert(size != nullptr);
                         assert(data != nullptr);
                         Reader& me = *((Reader*)data);
