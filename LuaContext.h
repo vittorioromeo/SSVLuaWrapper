@@ -85,15 +85,13 @@ class WrongTypeException : public std::runtime_error { public: WrongTypeExceptio
 
 
 	/// \brief Executes lua code from the stream \param code A stream that lua will read its code from
-	void            executeCode(std::istream& code)                                         { _load(code); _call<std::tuple<>>(std::tuple<>()); }
+	void executeCode(std::istream& code)                                         { _load(code); _call<std::tuple<>>(std::tuple<>()); }
 	/// \brief Executes lua code from the stream and returns a value \param code A stream that lua will read its code from
-	template<typename T>
-	T                       executeCode(std::istream& code)                                         { _load(code); return _call<T>(std::tuple<>()); }
+	template<typename T> T executeCode(std::istream& code) { _load(code); return _call<T>(std::tuple<>()); }
 	/// \brief Executes lua code given as parameter \param code A string containing code that will be executed by lua
-	void            executeCode(const std::string& code)                            { std::istringstream str(code); executeCode<void>(str); }
+	void executeCode(const std::string& code) { std::istringstream str(code); executeCode<void>(str); }
 	/// \brief Executes lua code given as parameter and returns a value \param code A string containing code that will be executed by lua
-	template<typename T>
-	T                       executeCode(const std::string& code)                            { std::istringstream str(code); return executeCode<T>(str); }
+	template<typename T> T executeCode(const std::string& code) { std::istringstream str(code); return executeCode<T>(str); }
 
 
 	/// \brief Tells that lua will be allowed to access an object's function
@@ -142,9 +140,9 @@ class WrongTypeException : public std::runtime_error { public: WrongTypeExceptio
 	void                            clearVariable(const std::string& variableName)                                          { lua_pushnil(_state); _setGlobal(variableName); }
 
 	/// \brief Returns the content of a variable \throw VariableDoesntExistException if variable doesn't exist \note If you wrote a ObjectWrapper<T> into a variable, you can only read its value using a std::shared_ptr<T>
-	template<typename T> T          readVariable(const std::string& variableName) const                                     { _getGlobal(variableName); return _readTopAndPop(1, (T*)nullptr); }
+	template<typename T> T readVariable(const std::string& variableName) const { _getGlobal(variableName); return _readTopAndPop(1, (T*)nullptr); }
 	/// \brief
-	template<typename T> bool       readVariableIfExists(const std::string& variableName, T& out)           { if (!doesVariableExist(variableName)) return false; out = readVariable<T>(variableName); return true; }
+	template<typename T> bool readVariableIfExists(const std::string& variableName, T& out) { if (!doesVariableExist(variableName)) return false; out = readVariable<T>(variableName); return true; }
 
 	/// \brief Changes the content of a global lua variable
 	/// \details Accepted values are: all base types (integers, floats), std::string, std::function or ObjectWrapper<...>. All objects are passed by copy and destroyed by the garbage collector.

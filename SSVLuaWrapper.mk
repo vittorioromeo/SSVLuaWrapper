@@ -13,7 +13,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Vittorio
-Date                   :=11/02/2013
+Date                   :=15/02/2013
 CodeLitePath           :="C:\Program Files (x86)\CodeLite"
 LinkerName             :=g++
 SharedObjectLinkerName :=g++ -shared -fPIC
@@ -43,7 +43,7 @@ IncludePCH             :=
 RcIncludePath          := 
 Libs                   := $(LibrarySwitch)lua5.1 $(LibrarySwitch)lua51 
 ArLibs                 :=  "lua5.1" "lua51" 
-LibPath                := $(LibraryPathSwitch). $(LibraryPathSwitch)./Release 
+LibPath                := $(LibraryPathSwitch). $(LibraryPathSwitch)C:/lua 
 
 ##
 ## Common variables
