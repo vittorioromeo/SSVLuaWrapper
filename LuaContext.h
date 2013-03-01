@@ -68,7 +68,7 @@ public:
 	explicit LuaContext(bool openDefaultLibs = true);
 	LuaContext(LuaContext&& s) : _state(s._state) { s._state = nullptr; }
 	LuaContext& operator=(LuaContext&& s) { std::swap(_state, s._state); return *this; }
-	~LuaContext()                           { if (_state != nullptr) lua_close(_state); }
+	~LuaContext()                           { if(_state != nullptr) lua_close(_state); }
 
 
 	/// \brief The table type can store any key and any value, and can be read or written by LuaContext
@@ -140,7 +140,7 @@ public:
 	/// \brief Returns the content of a variable \throw VariableDoesntExistException if variable doesn't exist \note If you wrote a ObjectWrapper<T> into a variable, you can only read its value using a std::shared_ptr<T>
 	template<typename T> T readVariable(const std::string& variableName) const { _getGlobal(variableName); return _readTopAndPop(1, (T*)nullptr); }
 	/// \brief
-	template<typename T> bool readVariableIfExists(const std::string& variableName, T& out) { if (!doesVariableExist(variableName)) return false; out = readVariable<T>(variableName); return true; }
+	template<typename T> bool readVariableIfExists(const std::string& variableName, T& out) { if(!doesVariableExist(variableName)) return false; out = readVariable<T>(variableName); return true; }
 
 	/// \brief Changes the content of a global lua variable
 	/// \details Accepted values are: all base types (integers, floats), std::string, std::function or ObjectWrapper<...>. All objects are passed by copy and destroyed by the garbage collector.
@@ -218,7 +218,7 @@ private:
 		lua_gettable(_state, LUA_REGISTRYINDEX);
 
 		// if it doesn't exist, we create one, then write it in registry but keep it pushed
-		if (!lua_istable(_state, -1))
+		if(!lua_istable(_state, -1))
 		{
 			assert(lua_isnil(_state, -1));
 			lua_pop(_state, 1);
@@ -242,7 +242,7 @@ private:
 		// trying to get the existing functions list
 		lua_pushlightuserdata(_state, const_cast<std::type_info*>(&typeid(T)));
 		lua_gettable(_state, LUA_REGISTRYINDEX);
-		if (!lua_istable(_state, -1))   { lua_pop(_state, -1); return; }
+		if(!lua_istable(_state, -1))   { lua_pop(_state, -1); return; }
 		lua_pushstring(_state, name.c_str());
 		lua_pushnil(_state);
 		lua_settable(_state, -3);
@@ -279,12 +279,12 @@ private:
 		const auto pcallReturnValue = lua_pcall(_state, inArguments, outArguments, 0);
 
 		// if pcall failed, analyzing the problem and throwing
-		if (pcallReturnValue != 0)
+		if(pcallReturnValue != 0)
 		{
 			// an error occured during execution, an error message was pushed on the stack
 			const std::string errorMsg = _readTopAndPop(1, (std::string*)nullptr);
-			if (pcallReturnValue == LUA_ERRMEM)                     throw(std::bad_alloc());
-			else if (pcallReturnValue == LUA_ERRRUN)        throw(ExecutionErrorException(errorMsg));
+			if(pcallReturnValue == LUA_ERRMEM)                     throw(std::bad_alloc());
+			else if(pcallReturnValue == LUA_ERRRUN)        throw(ExecutionErrorException(errorMsg));
 		}
 
 		// pcall succeeded, we pop the returned values and return them
@@ -332,7 +332,7 @@ public:
 			for (auto i = _elements.rbegin(); i != _elements.rend(); ++i)
 			{
 				auto element = dynamic_cast<Element<Key2,Value2>*>(i->get());
-				if (element != nullptr && element->key == key)
+				if(element != nullptr && element->key == key)
 					return element->value;
 			}
 			throw(VariableDoesntExistException("<key in table>"));
@@ -487,7 +487,7 @@ private:
 
 			// checking if number of parameters is correct
 			const int paramsCount = std::tuple_size<typename TupledFunction::ParamsType>::value;
-			if (lua_gettop(state) < paramsCount)
+			if(lua_gettop(state) < paramsCount)
 			{
 				// if not, using lua_error to return an error
 				luaL_where(state, 1);
@@ -631,7 +631,7 @@ private:
 				lua_pushstring(_state, "__index");
 				lua_pushlightuserdata(_state, const_cast<std::type_info*>(&typeid(T)));
 				lua_gettable(_state, LUA_REGISTRYINDEX);
-				if (!lua_istable(_state, -1))
+				if(!lua_istable(_state, -1))
 				{
 					assert(lua_isnil(_state, -1));
 					lua_pop(_state, 1);
@@ -682,7 +682,7 @@ private:
 	template<typename T>
 	typename std::enable_if<std::numeric_limits<T>::is_integer,T>::type _read(int index, T const* = nullptr) const
 	{
-		if (lua_isuserdata(_state, index))
+		if(lua_isuserdata(_state, index))
 			throw(WrongTypeException());
 		return T(lua_tointeger(_state, index));
 	}
@@ -693,7 +693,7 @@ private:
 	_read(int index, T const* = nullptr) const
 	{
 
-		if (lua_isuserdata(_state, index))
+		if(lua_isuserdata(_state, index))
 			throw(WrongTypeException());
 		return T(lua_tonumber(_state, index));
 	}
@@ -701,7 +701,7 @@ private:
 	// boolean
 	bool _read(int index, bool const* = nullptr) const
 	{
-		if (lua_isuserdata(_state, index))
+		if(lua_isuserdata(_state, index))
 			throw(WrongTypeException());
 		return lua_toboolean(_state, index) != 0;               // "!= 0" removes a warning because lua_toboolean returns an int
 	}
@@ -711,7 +711,7 @@ private:
 	//   the data in a std::string
 	std::string _read(int index, std::string const* = nullptr) const
 	{
-		if (lua_isuserdata(_state, index))
+		if(lua_isuserdata(_state, index))
 			throw(WrongTypeException());
 		return lua_tostring(_state, index);
 	}
@@ -720,7 +720,7 @@ private:
 	template<typename Key, typename Value>
 	std::map<Key,Value> _read(int index, std::map<Key,Value> const* = nullptr) const
 	{
-		if (!lua_istable(_state, index))
+		if(!lua_istable(_state, index))
 			throw(WrongTypeException());
 
 
@@ -741,7 +741,7 @@ private:
 	// reading array
 	Table _read(int index, Table const* = nullptr) const
 	{
-		if (!lua_istable(_state, index))
+		if(!lua_istable(_state, index))
 			throw(WrongTypeException());
 
 		throw(std::logic_error("Not implemented"));
@@ -777,15 +777,15 @@ private:
 	template<typename T>
 	std::shared_ptr<T> _read(int index, std::shared_ptr<T> const* = nullptr) const
 	{
-		if (!lua_isuserdata(_state, index))             throw(WrongTypeException());
-		if (!lua_getmetatable(_state, index))   throw(WrongTypeException());
+		if(!lua_isuserdata(_state, index))             throw(WrongTypeException());
+		if(!lua_getmetatable(_state, index))   throw(WrongTypeException());
 
 		// now we have our metatable on the top of the stack
 		// retrieving its _typeid member
 		lua_pushstring(_state, "_typeid");
 		lua_gettable(_state, -2);
 		// if wrong typeid, we throw
-		if (lua_touserdata(_state, -1) != const_cast<std::type_info*>(&typeid(std::shared_ptr<T>)))
+		if(lua_touserdata(_state, -1) != const_cast<std::type_info*>(&typeid(std::shared_ptr<T>)))
 		{
 			lua_pop(_state, 2);
 			throw(WrongTypeException());

@@ -36,7 +36,7 @@ Lua::LuaContext::LuaContext(bool openDefaultLibs)
 	{
 		static void* allocator(void*, void *ptr, size_t, size_t nsize)
 		{
-			if (nsize == 0)
+			if(nsize == 0)
 			{
 				free(ptr);
 				return nullptr;
@@ -50,10 +50,10 @@ Lua::LuaContext::LuaContext(bool openDefaultLibs)
 
 	// lua_newstate can return null if allocation failed
 	_state = lua_newstate(&Allocator::allocator, nullptr);
-	if (_state == nullptr)          throw(std::bad_alloc());
+	if(_state == nullptr)          throw(std::bad_alloc());
 
 	// opening default library if required to do so
-	if (openDefaultLibs)
+	if(openDefaultLibs)
 		luaL_openlibs(_state);
 }
 
@@ -74,7 +74,7 @@ void Lua::LuaContext::_load(std::istream& code)
 			assert(size != nullptr);
 			assert(data != nullptr);
 			Reader& me = *((Reader*)data);
-			if (me.stream.eof())
+			if(me.stream.eof())
 			{
 				*size = 0;
 				return nullptr;
@@ -91,13 +91,13 @@ void Lua::LuaContext::_load(std::istream& code)
 	auto loadReturnValue = lua_load(_state, &Reader::read, reader.get(), "chunk");
 
 	// now we have to check return value
-	if (loadReturnValue != 0)
+	if(loadReturnValue != 0)
 	{
 		// there was an error during loading, an error message was pushed on the stack
 		const char* errorMsg = lua_tostring(_state, -1);
 		lua_pop(_state, 1);
-		if (loadReturnValue == LUA_ERRMEM)                      throw(std::bad_alloc());
-		else if (loadReturnValue == LUA_ERRSYNTAX)      throw(SyntaxErrorException(std::string(errorMsg)));
+		if(loadReturnValue == LUA_ERRMEM)                      throw(std::bad_alloc());
+		else if(loadReturnValue == LUA_ERRSYNTAX)      throw(SyntaxErrorException(std::string(errorMsg)));
 
 	}
 }
@@ -105,7 +105,7 @@ void Lua::LuaContext::_load(std::istream& code)
 void Lua::LuaContext::_getGlobal(const std::string& variableName) const
 {
 	// first a little optimization: if variableName contains no dot, we can directly call lua_getglobal
-	if (std::find(variableName.begin(), variableName.end(), '.') == variableName.end())
+	if(std::find(variableName.begin(), variableName.end(), '.') == variableName.end())
 	{
 		lua_getglobal(_state, variableName.c_str());
 		return;
@@ -124,13 +124,13 @@ void Lua::LuaContext::_getGlobal(const std::string& variableName) const
 		nextVar = std::find(currentVar, variableName.end(), '.');
 		std::string buffer(currentVar, nextVar);
 		// since nextVar is pointing to a dot, we have to increase it first in order to find the next variable
-		if (nextVar != variableName.end())
+		if(nextVar != variableName.end())
 			++nextVar;
 
 		// ask lua to find the part stored in buffer
 		// if currentVar == begin, this is a global variable and push it on the stack
 		//   otherwise we already have an array pushed on the stack by the previous loop
-		if (currentVar == variableName.begin())
+		if(currentVar == variableName.begin())
 		{
 			lua_getglobal(_state, buffer.c_str());
 
@@ -139,7 +139,7 @@ void Lua::LuaContext::_getGlobal(const std::string& variableName) const
 		{
 			// if variableName is "a.b" and "a" is not a table (eg. it's a number or a string), this happens
 			// we don't have a specific exception for this, we consider this as a variable-doesn't-exist
-			if (!lua_istable(_state, -1))
+			if(!lua_istable(_state, -1))
 			{
 				lua_pop(_state, 1);
 				throw(VariableDoesntExistException(variableName));
@@ -154,7 +154,7 @@ void Lua::LuaContext::_getGlobal(const std::string& variableName) const
 		// lua will accept anything as variable name, but if the variable doesn't exist
 		//   it will simply push "nil" instead of a value
 		// so if we have a nil on the stack, the variable didn't exist and we throw
-		if (lua_isnil(_state, -1))
+		if(lua_isnil(_state, -1))
 		{
 			lua_pop(_state, 1);
 			throw(VariableDoesntExistException(variableName));
@@ -174,7 +174,7 @@ void Lua::LuaContext::_setGlobal(const std::string& variable)
 
 		// two possibilities: either "variable" is a global variable, or a member of an array
 		size_t lastDot = variable.find_last_of('.');
-		if (lastDot == std::string::npos)
+		if(lastDot == std::string::npos)
 		{
 			// this is the first case, we simply call setglobal (which cleans the stack)
 			lua_setglobal(_state, variable.c_str());
@@ -188,7 +188,7 @@ void Lua::LuaContext::_setGlobal(const std::string& variable)
 			_getGlobal(tableName);
 			try
 			{
-				if (!lua_istable(_state, -1))
+				if(!lua_istable(_state, -1))
 					throw(VariableDoesntExistException(variable));
 
 				// now we have our value at -2 (was pushed before _setGlobal is called) and our table at -1
