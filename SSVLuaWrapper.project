@@ -12,7 +12,6 @@
     <File Name="LuaContext.h"/>
     <File Name="SSVLuaWrapper.h"/>
   </VirtualDirectory>
-  <VirtualDirectory Name="include"/>
   <Dependencies Name="Debug"/>
   <Dependencies Name="Release"/>
   <Settings Type="Dynamic Library">
