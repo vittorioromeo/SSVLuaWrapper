@@ -13,14 +13,14 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=vittorio.romeo
-Date                   :=06/03/2013
+Date                   :=18/03/2013
 CodeLitePath           :="C:\Program Files (x86)\CodeLite"
 LinkerName             :=g++
 SharedObjectLinkerName :=g++ -shared -fPIC
 ObjectSuffix           :=.o
 DependSuffix           :=.o.d
 PreprocessSuffix       :=.o.i
-DebugSwitch            :=-gstab
+DebugSwitch            :=-g 
 IncludeSwitch          :=-I
 LibrarySwitch          :=-l
 OutputSwitch           :=-o 
@@ -31,7 +31,7 @@ OutputFile             :=./_RELEASE/$(ProjectName).dll
 Preprocessors          :=
 ObjectSwitch           :=-o 
 ArchiveOutputSwitch    := 
-PreprocessOnlySwitch   :=-E 
+PreprocessOnlySwitch   :=-E
 ObjectsFileList        :="SSVLuaWrapper.txt"
 PCHCompileFlags        :=
 MakeDirCommand         :=makedir
@@ -52,7 +52,7 @@ LibPath                := $(LibraryPathSwitch). $(LibraryPathSwitch)C:/lua
 AR       := ar rcus
 CXX      := g++
 CC       := gcc
-CXXFLAGS :=  -W -pedantic -O3 -Wextra -std=c++11 -Wall $(Preprocessors)
+CXXFLAGS :=  -W -s -pedantic -O3 -Wextra -std=c++11 -Wall $(Preprocessors)
 CFLAGS   :=   $(Preprocessors)
 
 

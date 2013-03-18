@@ -44,10 +44,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include <type_traits>
 
-extern "C" {
-#       include <lua5.1/lua.h>
-#       include <lua5.1/lualib.h>
-#       include <lua5.1/lauxlib.h>
+extern "C"
+{
+	#include <lua5.1/lua.h>
+	#include <lua5.1/lualib.h>
+	#include <lua5.1/lauxlib.h>
 }
 
 
@@ -68,7 +69,7 @@ public:
 	explicit LuaContext(bool openDefaultLibs = true);
 	LuaContext(LuaContext&& s) : _state(s._state) { s._state = nullptr; }
 	LuaContext& operator=(LuaContext&& s) { std::swap(_state, s._state); return *this; }
-	~LuaContext()                           { if(_state != nullptr) lua_close(_state); }
+	~LuaContext() { if(_state != nullptr) lua_close(_state); }
 
 
 	/// \brief The table type can store any key and any value, and can be read or written by LuaContext
@@ -85,7 +86,7 @@ public:
 
 
 	/// \brief Executes lua code from the stream \param code A stream that lua will read its code from
-	void executeCode(std::istream& code)                                         { _load(code); _call<std::tuple<>>(std::tuple<>()); }
+	void executeCode(std::istream& code) { _load(code); _call<std::tuple<>>(std::tuple<>()); }
 	/// \brief Executes lua code from the stream and returns a value \param code A stream that lua will read its code from
 	template<typename T> T executeCode(std::istream& code) { _load(code); return _call<T>(std::tuple<>()); }
 	/// \brief Executes lua code given as parameter \param code A string containing code that will be executed by lua
@@ -144,8 +145,7 @@ public:
 
 	/// \brief Changes the content of a global lua variable
 	/// \details Accepted values are: all base types (integers, floats), std::string, std::function or ObjectWrapper<...>. All objects are passed by copy and destroyed by the garbage collector.
-	template<typename T>
-	void writeVariable(const std::string& variableName, T&& data)
+	template<typename T> void writeVariable(const std::string& variableName, T&& data)
 	{
 		static_assert(!std::is_same<typename Tupleizer<T>::type,T>::value, "Error: you can't use LuaContext::writeVariable with a tuple");
 		const int pushedElems = _push(std::forward<T>(data));
@@ -160,7 +160,6 @@ private:
 	// forbidding copy
 	LuaContext(const LuaContext&);
 	LuaContext& operator=(const LuaContext&);
-
 
 	// the state is the most important variable in the class since it is our interface with Lua
 	// the mutex is here because the lua design is not thread safe (based on a stack)
@@ -185,21 +184,11 @@ private:
 	template<typename R>
 	typename std::enable_if<!std::is_void<R>::value,R>::type _readTopAndPop(int nb, R* ptr = nullptr) const
 	{
-		try
-		{
-			const R value = _read(-nb, ptr);
-			lua_pop(_state, nb);
-			return value;
-		}
-		catch(...)
-		{
-			lua_pop(_state, nb);
-			throw;
-		}
+		try { const R value = _read(-nb, ptr); lua_pop(_state, nb); return value; }
+		catch(...) { lua_pop(_state, nb); throw; }
 	}
 	void _readTopAndPop(int nb, void*) const { lua_pop(_state, nb); }
-
-
+	
 	/**************************************************/
 	/*            FUNCTIONS REGISTRATION              */
 	/**************************************************/
@@ -207,8 +196,7 @@ private:
 	// this function writes in registry the list of functions for each possible custom type (ie. T when pushing std::shared_ptr<T>)
 	// to be clear, registry[&typeid(type)] contains an array where keys are function names and values are functions
 	//              (where type is the first parameter of the functor)
-	template<typename T>
-	void _registerFunction(const std::string& name, T function)
+	template<typename T> void _registerFunction(const std::string& name, T function)
 	{
 		typedef typename RemoveMemberPtr<decltype(&T::operator())>::type FunctionType;
 		typedef typename std::tuple_element<0,typename FnTupleWrapper<FunctionType>::ParamsType>::type::element_type ObjectType;
@@ -232,7 +220,6 @@ private:
 		lua_pushstring(_state, name.c_str());
 		_push(std::move(function));
 		lua_settable(_state, -3);
-
 		lua_pop(_state, 1);
 	}
 
@@ -248,7 +235,6 @@ private:
 		lua_settable(_state, -3);
 		lua_pop(_state, 1);
 	}
-
 
 	/**************************************************/
 	/*              LOADING AND CALLING               */
@@ -288,10 +274,7 @@ private:
 		}
 
 		// pcall succeeded, we pop the returned values and return them
-		try
-		{
-			return _readTopAndPop(outArguments, (Out*)nullptr);
-		}
+		try { return _readTopAndPop(outArguments, (Out*)nullptr); }
 		catch(...) { lua_pop(_state, outArguments); throw; }
 	}
 

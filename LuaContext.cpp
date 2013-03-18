@@ -36,25 +36,17 @@ Lua::LuaContext::LuaContext(bool openDefaultLibs)
 	{
 		static void* allocator(void*, void *ptr, size_t, size_t nsize)
 		{
-			if(nsize == 0)
-			{
-				free(ptr);
-				return nullptr;
-			}
-			else
-			{
-				return realloc(ptr, nsize);
-			}
+			if(nsize == 0) { free(ptr); return nullptr; }
+			else return realloc(ptr, nsize);
 		}
 	};
 
 	// lua_newstate can return null if allocation failed
 	_state = lua_newstate(&Allocator::allocator, nullptr);
-	if(_state == nullptr)          throw(std::bad_alloc());
+	if(_state == nullptr) throw(std::bad_alloc());
 
 	// opening default library if required to do so
-	if(openDefaultLibs)
-		luaL_openlibs(_state);
+	if(openDefaultLibs) luaL_openlibs(_state);
 }
 
 void Lua::LuaContext::_load(std::istream& code)
@@ -65,8 +57,8 @@ void Lua::LuaContext::_load(std::istream& code)
 	struct Reader
 	{
 		Reader(std::istream& str) : stream(str) {}
-		std::istream&           stream;
-		char                            buffer[512];
+		std::istream& stream;
+		char buffer[512];
 
 		// read function ; "data" must be an instance of Reader
 		static const char* read(lua_State*, void* data, size_t* size)
@@ -74,14 +66,10 @@ void Lua::LuaContext::_load(std::istream& code)
 			assert(size != nullptr);
 			assert(data != nullptr);
 			Reader& me = *((Reader*)data);
-			if(me.stream.eof())
-			{
-				*size = 0;
-				return nullptr;
-			}
+			if(me.stream.eof()) { *size = 0; return nullptr; }
 
 			me.stream.read(me.buffer, sizeof(me.buffer));
-			*size = size_t(me.stream.gcount());             // gcount could return a value larger than a size_t, but its maximum is sizeof(me.buffer) so there's no problem
+			*size = size_t(me.stream.gcount()); // gcount could return a value larger than a size_t, but its maximum is sizeof(me.buffer) so there's no problem
 			return me.buffer;
 		}
 	};
@@ -96,9 +84,8 @@ void Lua::LuaContext::_load(std::istream& code)
 		// there was an error during loading, an error message was pushed on the stack
 		const char* errorMsg = lua_tostring(_state, -1);
 		lua_pop(_state, 1);
-		if(loadReturnValue == LUA_ERRMEM)                      throw(std::bad_alloc());
-		else if(loadReturnValue == LUA_ERRSYNTAX)      throw(SyntaxErrorException(std::string(errorMsg)));
-
+		if(loadReturnValue == LUA_ERRMEM) throw(std::bad_alloc());
+		else if(loadReturnValue == LUA_ERRSYNTAX) throw(SyntaxErrorException(std::string(errorMsg)));
 	}
 }
 
@@ -124,17 +111,12 @@ void Lua::LuaContext::_getGlobal(const std::string& variableName) const
 		nextVar = std::find(currentVar, variableName.end(), '.');
 		std::string buffer(currentVar, nextVar);
 		// since nextVar is pointing to a dot, we have to increase it first in order to find the next variable
-		if(nextVar != variableName.end())
-			++nextVar;
+		if(nextVar != variableName.end()) ++nextVar;
 
 		// ask lua to find the part stored in buffer
 		// if currentVar == begin, this is a global variable and push it on the stack
 		//   otherwise we already have an array pushed on the stack by the previous loop
-		if(currentVar == variableName.begin())
-		{
-			lua_getglobal(_state, buffer.c_str());
-
-		}
+		if(currentVar == variableName.begin()) lua_getglobal(_state, buffer.c_str());
 		else
 		{
 			// if variableName is "a.b" and "a" is not a table (eg. it's a number or a string), this happens
@@ -170,7 +152,7 @@ void Lua::LuaContext::_setGlobal(const std::string& variable)
 {
 	try
 	{
-		assert(lua_gettop(_state) >= 1);                // making sure there's something on the stack (ie. the value to set)
+		assert(lua_gettop(_state) >= 1); // making sure there's something on the stack (ie. the value to set)
 
 		// two possibilities: either "variable" is a global variable, or a member of an array
 		size_t lastDot = variable.find_last_of('.');
@@ -197,18 +179,10 @@ void Lua::LuaContext::_setGlobal(const std::string& variable)
 				lua_settable(_state, -3);                                                                                       // value at -2, table at -1
 				lua_pop(_state, 2);                                                                                                     // stack empty \o/
 			}
-			catch(...)
-			{
-				lua_pop(_state, 2);
-				throw;
-			}
+			catch(...) { lua_pop(_state, 2); throw; }
 		}
 	}
-	catch(...)
-	{
-		lua_pop(_state, 1);
-		throw;
-	}
+	catch(...) { lua_pop(_state, 1); throw; }
 }
 
 bool Lua::LuaContext::isVariableArray(const std::string& variableName) const
