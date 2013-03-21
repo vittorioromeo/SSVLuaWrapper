@@ -8,9 +8,21 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
-    <File Name="LuaContext.cpp"/>
-    <File Name="LuaContext.h"/>
-    <File Name="SSVLuaWrapper.h"/>
+    <VirtualDirectory Name="SSVLuaWrapper">
+      <VirtualDirectory Name="LuaContext">
+        <File Name="src/SSVLuaWrapper/LuaContext/LuaContext.cpp"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
+  </VirtualDirectory>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
+  <VirtualDirectory Name="include">
+    <VirtualDirectory Name="SSVLuaWrapper">
+      <File Name="include/SSVLuaWrapper/SSVLuaWrapper.h"/>
+      <VirtualDirectory Name="LuaContext">
+        <File Name="include/SSVLuaWrapper/LuaContext/LuaContext.h"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
   </VirtualDirectory>
   <Settings Type="Dynamic Library">
     <GlobalSettings>
@@ -65,11 +77,12 @@
     </Configuration>
     <Configuration Name="Release" CompilerType="nuwen" DebuggerType="GNU gdb debugger" Type="Dynamic Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-W;-s;-pedantic;-O3;-Wextra;-std=c++11;-Wall" C_Options="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" UseDifferentPCHFlags="no" PCHFlags="">
-        <IncludePath Value="C:/lua/include"/>
-        <IncludePath Value="C:/lua"/>
+        <IncludePath Value="./include/"/>
+        <IncludePath Value="C:/lua/include/"/>
+        <IncludePath Value="C:/lua/"/>
       </Compiler>
       <Linker Options="-shared" Required="yes">
-        <LibraryPath Value="C:/lua"/>
+        <LibraryPath Value="C:/lua/"/>
         <Library Value="lua5.1"/>
         <Library Value="lua51"/>
       </Linker>
@@ -106,6 +119,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug"/>
-  <Dependencies Name="Release"/>
 </CodeLite_Project>

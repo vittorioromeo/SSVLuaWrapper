@@ -13,7 +13,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=vittorio.romeo
-Date                   :=18/03/2013
+Date                   :=21/03/2013
 CodeLitePath           :="C:\Program Files (x86)\CodeLite"
 LinkerName             :=g++
 SharedObjectLinkerName :=g++ -shared -fPIC
@@ -38,12 +38,12 @@ MakeDirCommand         :=makedir
 RcCmpOptions           := 
 RcCompilerName         :=windres
 LinkOptions            :=  -shared
-IncludePath            :=  $(IncludeSwitch). $(IncludeSwitch)C:/lua/include $(IncludeSwitch)C:/lua 
+IncludePath            :=  $(IncludeSwitch). $(IncludeSwitch)./include/ $(IncludeSwitch)C:/lua/include/ $(IncludeSwitch)C:/lua/ 
 IncludePCH             := 
 RcIncludePath          := 
 Libs                   := $(LibrarySwitch)lua5.1 $(LibrarySwitch)lua51 
 ArLibs                 :=  "lua5.1" "lua51" 
-LibPath                := $(LibraryPathSwitch). $(LibraryPathSwitch)C:/lua 
+LibPath                := $(LibraryPathSwitch). $(LibraryPathSwitch)C:/lua/ 
 
 ##
 ## Common variables
@@ -63,7 +63,7 @@ CodeLiteDir:=C:\Program Files (x86)\CodeLite
 UNIT_TEST_PP_SRC_DIR:=C:\UnitTest++-1.3
 WXWIN:=C:\wxWidgets-2.9.4
 WXCFG:=gcc_dll\mswu
-Objects0=$(IntermediateDirectory)/LuaContext$(ObjectSuffix) 
+Objects0=$(IntermediateDirectory)/LuaContext_LuaContext$(ObjectSuffix) 
 
 Objects=$(Objects0) 
 
@@ -90,13 +90,13 @@ PreBuild:
 ##
 ## Objects
 ##
-$(IntermediateDirectory)/LuaContext$(ObjectSuffix): LuaContext.cpp $(IntermediateDirectory)/LuaContext$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "D:/Vee/Software/GitHub/OHWorkspace/SSVLuaWrapper/LuaContext.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/LuaContext$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/LuaContext$(DependSuffix): LuaContext.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/LuaContext$(ObjectSuffix) -MF$(IntermediateDirectory)/LuaContext$(DependSuffix) -MM "LuaContext.cpp"
+$(IntermediateDirectory)/LuaContext_LuaContext$(ObjectSuffix): src/SSVLuaWrapper/LuaContext/LuaContext.cpp $(IntermediateDirectory)/LuaContext_LuaContext$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "D:/Vee/Software/GitHub/OHWorkspace/SSVLuaWrapper/src/SSVLuaWrapper/LuaContext/LuaContext.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/LuaContext_LuaContext$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/LuaContext_LuaContext$(DependSuffix): src/SSVLuaWrapper/LuaContext/LuaContext.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/LuaContext_LuaContext$(ObjectSuffix) -MF$(IntermediateDirectory)/LuaContext_LuaContext$(DependSuffix) -MM "src/SSVLuaWrapper/LuaContext/LuaContext.cpp"
 
-$(IntermediateDirectory)/LuaContext$(PreprocessSuffix): LuaContext.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/LuaContext$(PreprocessSuffix) "LuaContext.cpp"
+$(IntermediateDirectory)/LuaContext_LuaContext$(PreprocessSuffix): src/SSVLuaWrapper/LuaContext/LuaContext.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/LuaContext_LuaContext$(PreprocessSuffix) "src/SSVLuaWrapper/LuaContext/LuaContext.cpp"
 
 
 -include $(IntermediateDirectory)/*$(DependSuffix)
@@ -104,9 +104,9 @@ $(IntermediateDirectory)/LuaContext$(PreprocessSuffix): LuaContext.cpp
 ## Clean
 ##
 clean:
-	$(RM) $(IntermediateDirectory)/LuaContext$(ObjectSuffix)
-	$(RM) $(IntermediateDirectory)/LuaContext$(DependSuffix)
-	$(RM) $(IntermediateDirectory)/LuaContext$(PreprocessSuffix)
+	$(RM) $(IntermediateDirectory)/LuaContext_LuaContext$(ObjectSuffix)
+	$(RM) $(IntermediateDirectory)/LuaContext_LuaContext$(DependSuffix)
+	$(RM) $(IntermediateDirectory)/LuaContext_LuaContext$(PreprocessSuffix)
 	$(RM) $(OutputFile)
 	$(RM) $(OutputFile)
 	$(RM) "../.build-release/SSVLuaWrapper"
