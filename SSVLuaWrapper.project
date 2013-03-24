@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="SSVLuaWrapper" InternalType="Library">
+  <Reconciliation>
+    <Regexes/>
+    <Excludepaths/>
+    <Ignorefiles/>
+    <Extensions>
+      <![CDATA[cpp;c;h;hpp;xrc;wxcp;fbp]]>
+    </Extensions>
+    <Topleveldir>../SSVLuaWrapper</Topleveldir>
+  </Reconciliation>
   <Plugins>
     <Plugin Name="qmake">
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
@@ -14,8 +23,6 @@
       </VirtualDirectory>
     </VirtualDirectory>
   </VirtualDirectory>
-  <Dependencies Name="Debug"/>
-  <Dependencies Name="Release"/>
   <VirtualDirectory Name="include">
     <VirtualDirectory Name="SSVLuaWrapper">
       <File Name="include/SSVLuaWrapper/SSVLuaWrapper.h"/>
@@ -118,4 +125,6 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
 </CodeLite_Project>
