@@ -13,7 +13,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=vittorio.romeo
-Date                   :=22/03/2013
+Date                   :=24/03/2013
 CodeLitePath           :="C:\Program Files (x86)\CodeLite"
 LinkerName             :=g++
 SharedObjectLinkerName :=g++ -shared -fPIC
@@ -27,7 +27,7 @@ OutputSwitch           :=-o
 LibraryPathSwitch      :=-L
 PreprocessorSwitch     :=-D
 SourceSwitch           :=-c 
-OutputFile             :=./_RELEASE/$(ProjectName).dll
+OutputFile             :=./lib/lib$(ProjectName)-s.a
 Preprocessors          :=
 ObjectSwitch           :=-o 
 ArchiveOutputSwitch    := 
@@ -37,13 +37,13 @@ PCHCompileFlags        :=
 MakeDirCommand         :=makedir
 RcCmpOptions           := 
 RcCompilerName         :=windres
-LinkOptions            :=  -shared
-IncludePath            :=  $(IncludeSwitch). $(IncludeSwitch)./include/ $(IncludeSwitch)C:/lua/include/ $(IncludeSwitch)C:/lua/ 
+LinkOptions            :=  
+IncludePath            :=  $(IncludeSwitch). $(IncludeSwitch)./include/ $(IncludeSwitch)../lua/include/ $(IncludeSwitch)../lua/ 
 IncludePCH             := 
 RcIncludePath          := 
-Libs                   := $(LibrarySwitch)lua5.1 $(LibrarySwitch)lua51 
-ArLibs                 :=  "lua5.1" "lua51" 
-LibPath                := $(LibraryPathSwitch). $(LibraryPathSwitch)C:/lua/ 
+Libs                   := $(LibrarySwitch)../lua/lua5.1.lib 
+ArLibs                 :=  "../lua/lua5.1.lib" 
+LibPath                := $(LibraryPathSwitch). $(LibraryPathSwitch)../lua/ 
 
 ##
 ## Common variables
@@ -52,7 +52,7 @@ LibPath                := $(LibraryPathSwitch). $(LibraryPathSwitch)C:/lua/
 AR       := ar rcus
 CXX      := g++
 CC       := gcc
-CXXFLAGS :=  -W -s -pedantic -O3 -Wextra -std=c++11 -Wall $(Preprocessors)
+CXXFLAGS :=  -W -s -pedantic -O3 -Wextra -std=c++11 -Wall -DNDEBUG $(Preprocessors)
 CFLAGS   :=   $(Preprocessors)
 
 
@@ -65,23 +65,25 @@ WXWIN:=C:\wxWidgets-2.9.4
 WXCFG:=gcc_dll\mswu
 Objects0=$(IntermediateDirectory)/LuaContext_LuaContext$(ObjectSuffix) 
 
+
+
 Objects=$(Objects0) 
 
 ##
 ## Main Build Targets 
 ##
 .PHONY: all clean PreBuild PrePreBuild PostBuild
-all: $(OutputFile)
+all: $(IntermediateDirectory) $(OutputFile)
 
-$(OutputFile): $(IntermediateDirectory)/.d $(Objects) 
+$(OutputFile): $(Objects)
 	@$(MakeDirCommand) $(@D)
 	@echo "" > $(IntermediateDirectory)/.d
 	@echo $(Objects0)  > $(ObjectsFileList)
-	$(SharedObjectLinkerName) $(OutputSwitch)$(OutputFile) $(Objects) $(LibPath) $(Libs) $(LinkOptions)
+	$(AR) $(ArchiveOutputSwitch)$(OutputFile) $(Objects) $(ArLibs)
 	@$(MakeDirCommand) "D:\Vee\Software\GitHub\OHWorkspace/.build-release"
 	@echo rebuilt > "D:\Vee\Software\GitHub\OHWorkspace/.build-release/SSVLuaWrapper"
 
-$(IntermediateDirectory)/.d:
+./_INTERMEDIATE:
 	@$(MakeDirCommand) "./_INTERMEDIATE"
 
 PreBuild:
