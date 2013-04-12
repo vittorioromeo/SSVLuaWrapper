@@ -4,14 +4,14 @@ All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-    * Neither the name of the <organization> nor the
-      names of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
+	* Neither the name of the <organization> nor the
+	  names of its contributors may be used to endorse or promote products
+	  derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -175,9 +175,9 @@ void Lua::LuaContext::_setGlobal(const std::string& variable)
 
 				// now we have our value at -2 (was pushed before _setGlobal is called) and our table at -1
 				lua_pushstring(_state, variable.substr(lastDot + 1).c_str());           // value at -3, table at -2, key at -1
-				lua_pushvalue(_state, -3);                                                                                      // value at -4, table at -3, key at -2, value at -1
-				lua_settable(_state, -3);                                                                                       // value at -2, table at -1
-				lua_pop(_state, 2);                                                                                                     // stack empty \o/
+				lua_pushvalue(_state, -3); // value at -4, table at -3, key at -2, value at -1
+				lua_settable(_state, -3); // value at -2, table at -1
+				lua_pop(_state, 2); // stack empty \o/
 			}
 			catch(...) { lua_pop(_state, 2); throw; }
 		}
