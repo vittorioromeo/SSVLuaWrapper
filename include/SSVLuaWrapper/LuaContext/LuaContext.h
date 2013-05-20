@@ -447,7 +447,7 @@ namespace Lua
 			int _push(T fn, decltype(&T::operator()) = nullptr)
 			{
 				// the () operator has type "R (T::*)(Args)", this typedef converts it to "R (Args)"
-				typedef typename RemoveMemberPtr<decltype(&T::operator())>::type                FnType;
+				typedef typename RemoveMemberPtr<decltype(&T::operator())>::type FnType;
 
 				// when the lua script calls the thing we will push on the stack, we want "fn" to be executed
 				// if we used lua's cfunctions system, we could not detect when the function is no longer in use, which could cause problems
@@ -455,10 +455,10 @@ namespace Lua
 
 				// we will create a userdata which contains a copy of a lambda function [](lua_State*) -> int
 				// but first we have to create it
-				auto functionToPush = [this,fn](lua_State* state) -> int
+				auto functionToPush = [this,fn](lua_State* state)
 				{
 					// note that I'm using "this->" because of g++,
-					//      I don't know if it is required by standards or if it is a bug
+					// I don't know if it is required by standards or if it is a bug
 					assert(this->_state == state);
 
 					// FnTupleWrapper<FnType> is a specialized template structure which defines
@@ -484,11 +484,11 @@ namespace Lua
 					}
 
 					// reading parameters from the stack
-#                               ifdef _MSC_VER
-					auto parameters = this->_read(-paramsCount, static_cast<TupledFunction::ParamsType*>(nullptr));
-#                               else
-					auto parameters = this->_read(-paramsCount, static_cast<typename TupledFunction::ParamsType*>(nullptr));
-#                               endif
+					#ifdef _MSC_VER
+						auto parameters = this->_read(-paramsCount, static_cast<TupledFunction::ParamsType*>(nullptr));
+					#else
+						auto parameters = this->_read(-paramsCount, static_cast<typename TupledFunction::ParamsType*>(nullptr));
+					#endif
 					// calling the function, note that "result" should be a tuple
 					auto result = TupledFunction::call(fn, std::move(parameters));
 					// pushing the result on the stack and returning number of pushed elements
