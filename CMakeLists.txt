@@ -5,7 +5,7 @@ project(SSVLuaWrapper)
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -W -pedantic" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "-fno-omit-frame-pointer -g3 -gdwarf-2 -Og" CACHE STRING "" FORCE)
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/;${CMAKE_MODULE_PATH}")
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/;${CMAKE_MODULE_PATH}")
 set(SSVLUAWRAPPER_BUILD_SHARED_LIB FALSE CACHE BOOL "Build shared libraries.")
 
 if(SSVLUAWRAPPER_BUILD_SHARED_LIB)
