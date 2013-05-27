@@ -841,7 +841,7 @@ namespace Lua
 		typedef std::tuple<>    ParamsType;
 		typedef std::tuple<>    ReturnType;
 		template<typename T>
-		static ReturnType call(const T& fn, ParamsType params)          { fn(); return ReturnType(); }
+		static ReturnType call(const T& fn, ParamsType)          { fn(); return ReturnType(); }
 	};
 	template<typename R>
 	struct LuaContext::FnTupleWrapper<R ()>
@@ -849,7 +849,7 @@ namespace Lua
 		typedef std::tuple<>    ParamsType;
 		typedef typename LuaContext::Tupleizer<R>::type ReturnType;
 		template<typename T>
-		static ReturnType call(const T& fn, ParamsType params)          { return ReturnType(fn()); }
+		static ReturnType call(const T& fn, ParamsType)          { return ReturnType(fn()); }
 	};
 	template<typename T1>
 	struct LuaContext::FnTupleWrapper<void (T1)>
