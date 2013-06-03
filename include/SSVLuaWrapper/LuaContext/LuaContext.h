@@ -455,7 +455,7 @@ namespace Lua
 
 				// we will create a userdata which contains a copy of a lambda function [](lua_State*) -> int
 				// but first we have to create it
-				std::function<int(lua_State*)> functionToPush([this, fn](lua_State* state) mutable
+				std::function<int(lua_State*)> functionToPush([this, fn](lua_State* state)
 				{
 					// note that I'm using "this->" because of g++,
 					// I don't know if it is required by standards or if it is a bug
