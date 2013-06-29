@@ -133,7 +133,7 @@ namespace Lua
 			void writeArrayIntoVariable(const std::string& variableName);
 
 			/// \brief Returns true if variable exists (ie. not nil)
-			bool doesVariableExist(const std::string& variableName) const { _getGlobal(variableName); bool answer = lua_isnil(_state, -1); lua_pop(_state, 1); return answer; }
+			bool doesVariableExist(const std::string& variableName) const { _getGlobal(variableName); bool answer = lua_isnil(_state, -1); lua_pop(_state, 1); return answer; } // TODO: BUG: does this return the opposite answer?
 
 			/// \brief Destroys a variable \details Puts the nil value into it
 			void clearVariable(const std::string& variableName) { lua_pushnil(_state); _setGlobal(variableName); }
