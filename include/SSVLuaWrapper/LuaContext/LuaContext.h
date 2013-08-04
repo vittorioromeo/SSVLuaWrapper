@@ -133,7 +133,7 @@ namespace Lua
 			void writeArrayIntoVariable(const std::string& variableName);
 
 			/// \brief Returns true if variable exists (ie. not nil)
-			bool doesVariableExist(const std::string& variableName) const { _getGlobal(variableName); bool answer = lua_isnil(_state, -1); lua_pop(_state, 1); return answer; } // TODO: BUG: does this return the opposite answer?
+			bool doesVariableExist(const std::string& variableName) const { _getGlobal(variableName); bool answer = lua_isnil(_state, -1); lua_pop(_state, 1); return !answer; }
 
 			/// \brief Destroys a variable \details Puts the nil value into it
 			void clearVariable(const std::string& variableName) { lua_pushnil(_state); _setGlobal(variableName); }
@@ -498,32 +498,28 @@ namespace Lua
 				// typedefing the type of data we will push
 				typedef decltype(functionToPush) FunctionPushType;
 
-				// this is a structure providing static C-like functions that we can feed to lua
-				// TODO: with full C++0x, these can be replaced by lambda functions with
-				//   nothing inside the brackets []
-				struct Callback
+				auto callbackCall = [](lua_State* lua)
 				{
 					// this function is called when the lua script tries to call our custom data type
 					// what we do is we simply call the function
-					static int call(lua_State* lua)
-					{
-						assert(lua_gettop(lua) >= 1);
-						assert(lua_isuserdata(lua, 1));
-						FunctionPushType* function = (FunctionPushType*)lua_touserdata(lua, 1);
-						assert(function);
-						return (*function)(lua);
-					}
 
+					assert(lua_gettop(lua) >= 1);
+					assert(lua_isuserdata(lua, 1));
+					FunctionPushType* function = (FunctionPushType*)lua_touserdata(lua, 1);
+					assert(function);
+					return (*function)(lua);
+				};
+
+				auto callbackGarbage = [](lua_State* lua)
+				{
 					// this one is called when lua's garbage collector no longer needs our custom data type
 					// we call std::function<int (lua_State*)>'s destructor
-					static int garbage(lua_State* lua)
-					{
-						assert(lua_gettop(lua) == 1);
-						FunctionPushType* function = (FunctionPushType*)lua_touserdata(lua, 1);
-						assert(function);
-						function->~FunctionPushType();
-						return 0;
-					}
+
+					assert(lua_gettop(lua) == 1);
+					FunctionPushType* function = (FunctionPushType*)lua_touserdata(lua, 1);
+					assert(function);
+					function->~FunctionPushType();
+					return 0;
 				};
 
 				// creating the object
@@ -537,13 +533,13 @@ namespace Lua
 				// all that remains on the stack after these function calls is the metatable
 				lua_newtable(_state);
 				lua_pushstring(_state, "__call");
-				lua_pushcfunction(_state, &Callback::call);
+				lua_pushcfunction(_state, callbackCall);
 				lua_settable(_state, -3);
 				lua_pushstring(_state, "_typeid");
 				lua_pushlightuserdata(_state, const_cast<std::type_info*>(&typeid(T)));
 				lua_settable(_state, -3);
 				lua_pushstring(_state, "__gc");
-				lua_pushcfunction(_state, &Callback::garbage);
+				lua_pushcfunction(_state, callbackGarbage);
 				lua_settable(_state, -3);
 
 				// at this point, the stack contains the object at offset -2 and the metatable at offset -1
