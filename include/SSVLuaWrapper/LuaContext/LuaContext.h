@@ -301,7 +301,7 @@ namespace Lua
 					{
 						typedef typename ToPushableType<Key>::type RKey;
 						typedef typename ToPushableType<Value>::type RValue;
-						_elements.push_back(std::unique_ptr<ElementBase>(new Element<RKey,RValue>(std::move(k), std::move(v))));
+						_elements.emplace_back(new Element<RKey,RValue>(std::move(k), std::move(v)));
 						insert(args...);
 					}
 
