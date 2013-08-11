@@ -46,9 +46,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern "C"
 {
-#include <lua5.1/lua.h>
-#include <lua5.1/lualib.h>
-#include <lua5.1/lauxlib.h>
+	#include <lua5.1/lua.h>
+	#include <lua5.1/lualib.h>
+	#include <lua5.1/lauxlib.h>
 }
 
 
