@@ -27,6 +27,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "SSVLuaWrapper/LuaContext/LuaContext.h"
 
+using namespace std;
+
 Lua::LuaContext::LuaContext(bool openDefaultLibs)
 {
 	// we pass this allocator function to lua_newstate
@@ -43,21 +45,21 @@ Lua::LuaContext::LuaContext(bool openDefaultLibs)
 
 	// lua_newstate can return null if allocation failed
 	_state = lua_newstate(&Allocator::allocator, nullptr);
-	if(_state == nullptr) throw(std::bad_alloc());
+	if(_state == nullptr) throw(bad_alloc());
 
 	// opening default library if required to do so
 	if(openDefaultLibs) luaL_openlibs(_state);
 }
 
-void Lua::LuaContext::_load(std::istream& code)
+void Lua::LuaContext::_load(istream& code)
 {
 	// since the lua_load function requires a static function, we use this structure
 	// the Reader structure is at the same time an object storing an istream and a buffer,
 	//   and a static function provider
 	struct Reader
 	{
-		Reader(std::istream& str) : stream(str) {}
-		std::istream& stream;
+		Reader(istream& str) : stream(str) {}
+		istream& stream;
 		char buffer[512];
 
 		// read function ; "data" must be an instance of Reader
@@ -75,7 +77,7 @@ void Lua::LuaContext::_load(std::istream& code)
 	};
 
 	// we create an instance of Reader, and we call lua_load
-	std::unique_ptr<Reader> reader(new Reader(code));
+	unique_ptr<Reader> reader(new Reader(code));
 	auto loadReturnValue = lua_load(_state, &Reader::read, reader.get(), "chunk");
 
 	// now we have to check return value
@@ -84,15 +86,15 @@ void Lua::LuaContext::_load(std::istream& code)
 		// there was an error during loading, an error message was pushed on the stack
 		const char* errorMsg = lua_tostring(_state, -1);
 		lua_pop(_state, 1);
-		if(loadReturnValue == LUA_ERRMEM) throw(std::bad_alloc());
-		else if(loadReturnValue == LUA_ERRSYNTAX) throw(SyntaxErrorException(std::string(errorMsg)));
+		if(loadReturnValue == LUA_ERRMEM) throw(bad_alloc());
+		else if(loadReturnValue == LUA_ERRSYNTAX) throw(SyntaxErrorException(string(errorMsg)));
 	}
 }
 
-void Lua::LuaContext::_getGlobal(const std::string& variableName) const
+void Lua::LuaContext::_getGlobal(const string& variableName) const
 {
 	// first a little optimization: if variableName contains no dot, we can directly call lua_getglobal
-	if(std::find(variableName.begin(), variableName.end(), '.') == variableName.end())
+	if(find(variableName.begin(), variableName.end(), '.') == variableName.end())
 	{
 		lua_getglobal(_state, variableName.c_str());
 		return;
@@ -108,8 +110,8 @@ void Lua::LuaContext::_getGlobal(const std::string& variableName) const
 		auto currentVar = nextVar;
 
 		// first we extract the part between currentVar and the next dot we encounter
-		nextVar = std::find(currentVar, variableName.end(), '.');
-		std::string buffer(currentVar, nextVar);
+		nextVar = find(currentVar, variableName.end(), '.');
+		string buffer(currentVar, nextVar);
 		// since nextVar is pointing to a dot, we have to increase it first in order to find the next variable
 		if(nextVar != variableName.end()) ++nextVar;
 
@@ -148,7 +150,7 @@ void Lua::LuaContext::_getGlobal(const std::string& variableName) const
 	while (nextVar != variableName.end());
 }
 
-void Lua::LuaContext::_setGlobal(const std::string& variable)
+void Lua::LuaContext::_setGlobal(const string& variable)
 {
 	try
 	{
@@ -156,7 +158,7 @@ void Lua::LuaContext::_setGlobal(const std::string& variable)
 
 		// two possibilities: either "variable" is a global variable, or a member of an array
 		size_t lastDot = variable.find_last_of('.');
-		if(lastDot == std::string::npos)
+		if(lastDot == string::npos)
 		{
 			// this is the first case, we simply call setglobal (which cleans the stack)
 			lua_setglobal(_state, variable.c_str());
@@ -185,7 +187,7 @@ void Lua::LuaContext::_setGlobal(const std::string& variable)
 	catch(...) { lua_pop(_state, 1); throw; }
 }
 
-bool Lua::LuaContext::isVariableArray(const std::string& variableName) const
+bool Lua::LuaContext::isVariableArray(const string& variableName) const
 {
 	_getGlobal(variableName);
 	bool answer = lua_istable(_state, -1);
@@ -193,7 +195,7 @@ bool Lua::LuaContext::isVariableArray(const std::string& variableName) const
 	return answer;
 }
 
-void Lua::LuaContext::writeArrayIntoVariable(const std::string& variableName)
+void Lua::LuaContext::writeArrayIntoVariable(const string& variableName)
 {
 	lua_newtable(_state);
 	_setGlobal(variableName);
