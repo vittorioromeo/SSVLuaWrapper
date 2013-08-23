@@ -1,3 +1,7 @@
+// Copyright (c) 2013 Vittorio Romeo
+// License: Academic Free License ("AFL") v. 3.0
+// AFL License page: http://opensource.org/licenses/AFL-3.0
+
 /*
 Copyright (c) 2010, Pierre KRIEGER
 All rights reserved.
@@ -25,8 +29,8 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef INCLUDE_LUA_LUACONTEXT_H
-#define INCLUDE_LUA_LUACONTEXT_H
+#ifndef SSVLUAWRAPPER_LUACONTEXT
+#define SSVLUAWRAPPER_LUACONTEXT
 
 #include <algorithm>
 #include <cassert>
@@ -50,7 +54,6 @@ extern "C"
 	#include <lua5.1/lualib.h>
 	#include <lua5.1/lauxlib.h>
 }
-
 
 namespace Lua
 {
@@ -96,14 +99,10 @@ namespace Lua
 
 
 			/// \brief Tells that lua will be allowed to access an object's function
-			template<typename T, typename R, typename... Args>
-			void registerFunction(const std::string& name, R (T::*f)(Args...)) { _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
-			template<typename T, typename R, typename... Args>
-			void registerFunction(const std::string& name, R (T::*f)(Args...) const) { _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
-			template<typename T, typename R, typename... Args>
-			void registerFunction(const std::string& name, R (T::*f)(Args...) volatile) { _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
-			template<typename T, typename R, typename... Args>
-			void registerFunction(const std::string& name, R (T::*f)(Args...) const volatile) { _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
+			template<typename T, typename R, typename... Args> void registerFunction(const std::string& name, R(T::*f)(Args...))				{ _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
+			template<typename T, typename R, typename... Args> void registerFunction(const std::string& name, R(T::*f)(Args...) const)			{ _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
+			template<typename T, typename R, typename... Args> void registerFunction(const std::string& name, R(T::*f)(Args...) volatile)		{ _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
+			template<typename T, typename R, typename... Args> void registerFunction(const std::string& name, R(T::*f)(Args...) const volatile)	{ _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
 
 
 
@@ -246,13 +245,11 @@ namespace Lua
 			// this function calls what is on the top of the stack and removes it (just like lua_call)
 			// if an exception is triggered, the top of the stack will be removed anyway
 			// In should be a tuple (at least until variadic templates are supported everywhere), Out can be anything
-			template<typename Out, typename In>
-			Out _call(const In& in)
+			template<typename Out, typename In> Out _call(const In& in)
 			{
 				static_assert(std::tuple_size<In>::value >= 0, "Error: template parameter 'In' should be a tuple");
 
-				int outArguments = 0;
-				int inArguments = 0;
+				int outArguments{0}, inArguments{0};
 				try
 				{
 					// we push the parameters on the stack
@@ -291,13 +288,11 @@ namespace Lua
 					Table& operator=(Table&& t) { swap(t, *this); return *this; }
 					~Table() { }
 
-					template<typename... Args>
-					explicit Table(Args... args) { insert(args...); }
+					template<typename... Args> explicit Table(Args... args) { insert(args...); }
 
 					friend void swap(Table& a, Table& b) { std::swap(a._elements, b._elements); }
 
-					template<typename Key, typename Value, typename... Args>
-					void insert(Key k, Value v, Args... args)
+					template<typename Key, typename Value, typename... Args> void insert(Key k, Value v, Args... args)
 					{
 						typedef typename ToPushableType<Key>::type RKey;
 						typedef typename ToPushableType<Value>::type RValue;
@@ -307,16 +302,14 @@ namespace Lua
 
 					void insert() { }
 
-					template<typename Value, typename Key>
-					Value read(const Key& key)
+					template<typename Value, typename Key> Value read(const Key& key)
 					{
-						typedef typename ToPushableType<Key>::type Key2;
-						typedef typename ToPushableType<Value>::type Value2;
-						for (auto i = _elements.rbegin(); i != _elements.rend(); ++i)
+						using Key2 = typename ToPushableType<Key>::type;
+						using Value2 = typename ToPushableType<Value>::type;
+						for(auto i = _elements.rbegin(); i != _elements.rend(); ++i)
 						{
 							auto element = dynamic_cast<Element<Key2,Value2>*>(i->get());
-							if(element != nullptr && element->key == key)
-								return element->value;
+							if(element != nullptr && element->key == key) return element->value;
 						}
 						throw(VariableDoesntExistException("<key in table>"));
 					}
@@ -329,27 +322,26 @@ namespace Lua
 					// the push function should add the key/value pair to the table currently at the top of the stack
 					struct ElementBase
 					{
-							virtual ~ElementBase() {}
-							virtual void push(LuaContext&) const = 0;
+						virtual ~ElementBase() {}
+						virtual void push(LuaContext&) const = 0;
 					};
 
 					// derivate of ElementBase, real implementation
-					template<typename Key, typename Value>
-					struct Element : public ElementBase
+					template<typename Key, typename Value> struct Element : public ElementBase
 					{
-							Element(Key k, Value v) : key(std::move(k)), value(std::move(v)) {}
-							~Element() {}
+						Element(Key k, Value v) : key(std::move(k)), value(std::move(v)) {}
+						~Element() {}
 
-							void push(LuaContext& ctxt) const
-							{
-								assert(lua_istable(ctxt._state, -1));
-								ctxt._push(key);
-								ctxt._push(value);
-								lua_settable(ctxt._state, -3);
-							}
+						void push(LuaContext& ctxt) const
+						{
+							assert(lua_istable(ctxt._state, -1));
+							ctxt._push(key);
+							ctxt._push(value);
+							lua_settable(ctxt._state, -3);
+						}
 
-							Key key;
-							Value value;
+						Key key;
+						Value value;
 					};
 
 					// pushing the whole array
@@ -359,7 +351,7 @@ namespace Lua
 						lua_newtable(ctxt._state);
 						try
 						{
-							for (auto i = _elements.begin(); i != _elements.end(); ++i)
+							for(auto i = _elements.begin(); i != _elements.end(); ++i)
 								(*i)->push(ctxt);
 						}
 						catch(...)
@@ -381,8 +373,7 @@ namespace Lua
 			/*                PUSH FUNCTIONS                  */
 			/**************************************************/
 			// this structure converts an input type to a pushable output type
-			template<typename Input, typename = void>
-			struct ToPushableType;
+			template<typename Input, typename = void> struct ToPushableType;
 
 			// first the basic ones: integer, number, boolean, string
 			int _push() { return 0; }
@@ -391,24 +382,21 @@ namespace Lua
 			int _push(const char* s) { lua_pushstring(_state, s); return 1; }
 
 			// pushing floating numbers
-			template<typename T>
-			typename std::enable_if<std::is_floating_point<T>::value,int>::type _push(T nb)
+			template<typename T> typename std::enable_if<std::is_floating_point<T>::value,int>::type _push(T nb)
 			{
 				lua_pushnumber(_state, nb);
 				return 1;
 			}
 
 			// pushing integers
-			template<typename T>
-			typename std::enable_if<std::is_integral<T>::value,int>::type _push(T nb)
+			template<typename T> typename std::enable_if<std::is_integral<T>::value,int>::type _push(T nb)
 			{
 				lua_pushinteger(_state, nb);
 				return 1;
 			}
 
 			// using variadic templates, you can push multiple values at once
-			template<typename T1, typename T2, typename... Args>
-			int _push(T1&& v1, T2&& v2, Args&&... args)
+			template<typename T1, typename T2, typename... Args> int _push(T1&& v1, T2&& v2, Args&&... args)
 			{
 				int p = _push(std::forward<T1>(v1));
 				try
@@ -420,17 +408,14 @@ namespace Lua
 			}
 
 			// pushing tables
-			int _push(const Table& table)
-			{
-				return table._push(*this); }
+			int _push(const Table& table) { return table._push(*this); }
 
 			// pushing maps
-			template<typename Key, typename Value>
-			int _push(const std::map<Key,Value>& map)
+			template<typename Key, typename Value> int _push(const std::map<Key,Value>& map)
 			{
 				lua_newtable(_state);
 
-				for (auto i = map.begin(); i != map.end(); ++i)
+				for(auto i = map.begin(); i != map.end(); ++i)
 				{
 					_push(i->first);
 					_push(i->second);
@@ -443,10 +428,9 @@ namespace Lua
 			// when you call _push with a functor, this definition should be used (thanks to SFINAE)
 			// it will determine the function category using its () operator, then
 			//   generate a callable user data and push it
-			template<typename T>
-			int _push(T fn, decltype(&T::operator()) = nullptr)
+			template<typename T> int _push(T fn, decltype(&T::operator()) = nullptr)
 			{
-				// the () operator has type "R (T::*)(Args)", this typedef converts it to "R (Args)"
+				// the () operator has type "R(T::*)(Args)", this typedef converts it to "R(Args)"
 				typedef typename RemoveMemberPtr<decltype(&T::operator())>::type FnType;
 
 				// when the lua script calls the thing we will push on the stack, we want "fn" to be executed
@@ -469,7 +453,7 @@ namespace Lua
 					typedef LuaContext::FnTupleWrapper<FnType> TupledFunction;
 
 					// checking if number of parameters is correct
-					const int paramsCount = std::tuple_size<typename TupledFunction::ParamsType>::value;
+					const int paramsCount = TupledFunction::count;
 					if(lua_gettop(state) < paramsCount)
 					{
 						// if not, using lua_error to return an error
@@ -635,16 +619,11 @@ namespace Lua
 			}
 
 			// pushing tuples is also possible, though a bit complicated
-			template<typename... Args, int N = sizeof...(Args)>
-			int _push(const std::tuple<Args...>& t, std::integral_constant<int,N>* = nullptr, typename std::enable_if<(N >= 1)>::type* = nullptr)
+			template<typename... Args, int N = sizeof...(Args)> int _push(const std::tuple<Args...>& t, std::integral_constant<int,N>* = nullptr, typename std::enable_if<(N >= 1)>::type* = nullptr)
 			{
 				return _push(t, static_cast<std::integral_constant<int,N-1>*>(nullptr)) + _push(std::get<N-1>(t));
 			}
-			template<typename... Args, int N = sizeof...(Args)>
-			int _push(const std::tuple<Args...>&, std::integral_constant<int,N>* = nullptr, typename std::enable_if<(N == 0)>::type* = nullptr)
-			{
-				return 0;
-			}
+			template<typename... Args, int N = sizeof...(Args)> int _push(const std::tuple<Args...>&, std::integral_constant<int,N>* = nullptr, typename std::enable_if<(N == 0)>::type* = nullptr) { return 0; }
 
 			/**************************************************/
 			/*                READ FUNCTIONS                  */
@@ -653,35 +632,26 @@ namespace Lua
 			// eg. if you want an int, pass "static_cast<int*>(nullptr)" as second parameter
 
 			// reading void
-			void _read(int, void const* = nullptr) const
-			{
-			}
+			void _read(int, void const* = nullptr) const { }
 
 			// first the integer types
-			template<typename T>
-			typename std::enable_if<std::numeric_limits<T>::is_integer,T>::type _read(int index, T const* = nullptr) const
+			template<typename T> typename std::enable_if<std::numeric_limits<T>::is_integer,T>::type _read(int index, T const* = nullptr) const
 			{
-				if(lua_isuserdata(_state, index))
-					throw(WrongTypeException());
+				if(lua_isuserdata(_state, index)) throw(WrongTypeException());
 				return T(lua_tointeger(_state, index));
 			}
 
 			// then the floating types
-			template<typename T>
-			typename std::enable_if<std::numeric_limits<T>::is_specialized && !std::numeric_limits<T>::is_integer,T>::type
-			_read(int index, T const* = nullptr) const
+			template<typename T> typename std::enable_if<std::numeric_limits<T>::is_specialized && !std::numeric_limits<T>::is_integer,T>::type _read(int index, T const* = nullptr) const
 			{
-
-				if(lua_isuserdata(_state, index))
-					throw(WrongTypeException());
+				if(lua_isuserdata(_state, index)) throw(WrongTypeException());
 				return T(lua_tonumber(_state, index));
 			}
 
 			// boolean
 			bool _read(int index, bool const* = nullptr) const
 			{
-				if(lua_isuserdata(_state, index))
-					throw(WrongTypeException());
+				if(lua_isuserdata(_state, index)) throw(WrongTypeException());
 				return lua_toboolean(_state, index) != 0;               // "!= 0" removes a warning because lua_toboolean returns an int
 			}
 
@@ -690,18 +660,14 @@ namespace Lua
 			//   the data in a std::string
 			std::string _read(int index, std::string const* = nullptr) const
 			{
-				if(lua_isuserdata(_state, index))
-					throw(WrongTypeException());
+				if(lua_isuserdata(_state, index)) throw(WrongTypeException());
 				return lua_tostring(_state, index);
 			}
 
 			// maps
-			template<typename Key, typename Value>
-			std::map<Key,Value> _read(int index, std::map<Key,Value> const* = nullptr) const
+			template<typename Key, typename Value> std::map<Key,Value> _read(int index, std::map<Key,Value> const* = nullptr) const
 			{
-				if(!lua_istable(_state, index))
-					throw(WrongTypeException());
-
+				if(!lua_istable(_state, index)) throw(WrongTypeException());
 
 				std::map<Key,Value> retValue;
 
@@ -720,9 +686,7 @@ namespace Lua
 			// reading array
 			Table _read(int index, Table const* = nullptr) const
 			{
-				if(!lua_istable(_state, index))
-					throw(WrongTypeException());
-
+				if(!lua_istable(_state, index)) throw(WrongTypeException());
 				throw(std::logic_error("Not implemented"));
 
 				/*Table table;
@@ -756,8 +720,8 @@ namespace Lua
 			template<typename T>
 			std::shared_ptr<T> _read(int index, std::shared_ptr<T> const* = nullptr) const
 			{
-				if(!lua_isuserdata(_state, index))             throw(WrongTypeException());
-				if(!lua_getmetatable(_state, index))   throw(WrongTypeException());
+				if(!lua_isuserdata(_state, index)) throw(WrongTypeException());
+				if(!lua_getmetatable(_state, index)) throw(WrongTypeException());
 
 				// now we have our metatable on the top of the stack
 				// retrieving its _typeid member
@@ -778,14 +742,11 @@ namespace Lua
 			}
 
 			// reading a tuple
-			template<typename First, typename... Args>
-			std::tuple<First,Args...> _read(int index, std::tuple<First, Args...> const* = nullptr) const
+			template<typename First, typename... Args> std::tuple<First,Args...> _read(int index, std::tuple<First, Args...> const* = nullptr) const
 			{
 				return std::tuple_cat(std::make_tuple(_read(index, static_cast<First*>(nullptr))), _read(index + 1, static_cast<std::tuple<Args...>*>(nullptr)));
 			}
-			std::tuple<> _read(int, std::tuple<> const* = nullptr) const
-			{
-				return std::tuple<>(); }
+			std::tuple<> _read(int, std::tuple<> const* = nullptr) const { return std::tuple<>(); }
 
 
 
@@ -797,211 +758,76 @@ namespace Lua
 			template<typename Fn> struct RemoveMemberPtr;
 	};
 
-	template<typename T>
-	struct IsFunctor
+	template<typename T> struct IsFunctor
 	{
-			typedef char one;
-			typedef long two;
+		using one = char;
+		using two = long;
 
-			template <typename C> static one test(decltype(&C::operator())) ;
-			template <typename C> static two test(...);
+		template<typename C> static one test(decltype(&C::operator())) ;
+		template<typename C> static two test(...);
 
-			enum { value = sizeof(test<T>(0)) == sizeof(char) };
+		enum{value = sizeof(test<T>(0)) == sizeof(char)};
 	};
 
 	// you must be able to convert T to ToPushableType<T>::type
-	template<typename T> struct LuaContext::ToPushableType<T&> { typedef typename ToPushableType<T>::type type; };
-	template<typename T> struct LuaContext::ToPushableType<const T&> { typedef typename ToPushableType<T>::type type; };
-	template<typename T> struct LuaContext::ToPushableType<T, typename std::enable_if<std::is_integral<T>::value>::type> { typedef lua_Integer type; };
-	template<typename T> struct LuaContext::ToPushableType<T, typename std::enable_if<std::is_floating_point<T>::value>::type> { typedef lua_Number type; };
-	template<> struct LuaContext::ToPushableType<bool> { typedef bool type; };
-	template<> struct LuaContext::ToPushableType<const char*> { typedef std::string type; };
-	template<int N> struct LuaContext::ToPushableType<const char[N]> { typedef std::string type; };
-	template<int N> struct LuaContext::ToPushableType<char[N]> { typedef std::string type; };
-	template<> struct LuaContext::ToPushableType<std::string> { typedef std::string type; };
-	template<typename T> struct LuaContext::ToPushableType<std::unique_ptr<T>> { typedef std::shared_ptr<T> type; };
-	template<typename T> struct LuaContext::ToPushableType<std::shared_ptr<T>> { typedef std::shared_ptr<T> type; };
-	template<> struct LuaContext::ToPushableType<LuaContext::Table> { typedef LuaContext::Table type; };
-	template<typename T> struct LuaContext::ToPushableType<T, typename std::enable_if<IsFunctor<T>::value>::type> { typedef T type; };
+	template<typename T>	struct LuaContext::ToPushableType<T&>																	{ using type = typename ToPushableType<T>::type; };
+	template<typename T>	struct LuaContext::ToPushableType<const T&>																{ using type = typename ToPushableType<T>::type; };
+	template<typename T>	struct LuaContext::ToPushableType<T, typename std::enable_if<std::is_integral<T>::value>::type>			{ using type = lua_Integer; };
+	template<typename T>	struct LuaContext::ToPushableType<T, typename std::enable_if<std::is_floating_point<T>::value>::type>	{ using type = lua_Number; };
+	template<>				struct LuaContext::ToPushableType<bool>																	{ using type = bool; };
+	template<>				struct LuaContext::ToPushableType<const char*>															{ using type = std::string; };
+	template<int N>			struct LuaContext::ToPushableType<const char[N]>														{ using type = std::string; };
+	template<int N>			struct LuaContext::ToPushableType<char[N]>																{ using type = std::string; };
+	template<>				struct LuaContext::ToPushableType<std::string>															{ using type = std::string; };
+	template<typename T>	struct LuaContext::ToPushableType<std::unique_ptr<T>>													{ using type = std::shared_ptr<T>; };
+	template<typename T>	struct LuaContext::ToPushableType<std::shared_ptr<T>>													{ using type = std::shared_ptr<T>; };
+	template<>				struct LuaContext::ToPushableType<LuaContext::Table>													{ using type = LuaContext::Table; };
+	template<typename T>	struct LuaContext::ToPushableType<T, typename std::enable_if<IsFunctor<T>::value>::type>				{ using type = T; };
 
 	// this structure takes a function definition as template parameter and defines three things:
 	// a ParamsType type which converts the function parameters into a tuple,
 	// a ReturnType type which is either std::tuple<> (if void) or std::tuple<original return type>
 	// a call function which calls the function using a tuple of type ParamsType, and returns ReturnType
 	// this class only supports functions with up to 9 parameters, if you want more either add it yourself or wait for variadic templates
-	template<typename FnType>
-	struct LuaContext::FnTupleWrapper               { };
-	template<>
-	struct LuaContext::FnTupleWrapper<void ()>
-	{
-		typedef std::tuple<>    ParamsType;
-		typedef std::tuple<>    ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, ParamsType)          { fn(); return ReturnType(); }
-	};
-	template<typename R>
-	struct LuaContext::FnTupleWrapper<R ()>
-	{
-		typedef std::tuple<>    ParamsType;
-		typedef typename LuaContext::Tupleizer<R>::type ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, ParamsType)          { return ReturnType(fn()); }
-	};
-	template<typename T1>
-	struct LuaContext::FnTupleWrapper<void (T1)>
-	{
-		typedef typename LuaContext::Tupleizer<T1>::type        ParamsType;
-		typedef std::tuple<>    ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, ParamsType params)  { fn(std::move(std::get<0>(params))); return ReturnType(); }
-	};
-	template<typename R, typename T1>
-	struct LuaContext::FnTupleWrapper<R (T1)>
-	{
-		typedef typename LuaContext::Tupleizer<T1>::type        ParamsType;
-		typedef typename LuaContext::Tupleizer<R>::type ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, ParamsType params)          { return ReturnType(fn(std::move(std::get<0>(params)))); }
-	};
-	template<typename T1, typename T2>
-	struct LuaContext::FnTupleWrapper<void (T1,T2)>
-	{
-		typedef std::tuple<T1,T2>       ParamsType;
-		typedef std::tuple<>    ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params)   { fn(std::get<0>(params), std::get<1>(params)); return ReturnType(); }
-	};
-	template<typename R, typename T1, typename T2>
-	struct LuaContext::FnTupleWrapper<R (T1,T2)>
-	{
-		typedef std::tuple<T1,T2>       ParamsType;
-		typedef typename LuaContext::Tupleizer<R>::type ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params)           { return ReturnType(fn(std::get<0>(params), std::get<1>(params))); }
-	};
-	template<typename T1, typename T2, typename T3>
-	struct LuaContext::FnTupleWrapper<void (T1,T2,T3)>
-	{
-		typedef std::tuple<T1,T2,T3>    ParamsType;
-		typedef std::tuple<>    ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params)   { fn(std::get<0>(params), std::get<1>(params), std::get<2>(params)); return ReturnType(); }
-	};
-	template<typename R, typename T1, typename T2, typename T3>
-	struct LuaContext::FnTupleWrapper<R (T1,T2,T3)>
-	{
-		typedef std::tuple<T1,T2,T3>    ParamsType;
-		typedef typename LuaContext::Tupleizer<R>::type ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params)           { return ReturnType(fn(std::get<0>(params), std::get<1>(params), std::get<2>(params))); }
-	};
-	template<typename T1, typename T2, typename T3, typename T4>
-	struct LuaContext::FnTupleWrapper<void (T1,T2,T3,T4)>
-	{
-		typedef std::tuple<T1,T2,T3,T4> ParamsType;
-		typedef std::tuple<>    ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params)   { fn(std::get<0>(params), std::get<1>(params), std::get<2>(params), std::get<3>(params)); return ReturnType(); }
-	};
-	template<typename R, typename T1, typename T2, typename T3, typename T4>
-	struct LuaContext::FnTupleWrapper<R (T1,T2,T3,T4)>
-	{
-		typedef std::tuple<T1,T2,T3,T4> ParamsType;
-		typedef typename LuaContext::Tupleizer<R>::type ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params)           { return ReturnType(fn(std::get<0>(params), std::get<1>(params), std::get<2>(params), std::get<3>(params))); }
-	};
-	template<typename T1, typename T2, typename T3, typename T4, typename T5>
-	struct LuaContext::FnTupleWrapper<void (T1,T2,T3,T4,T5)>
-	{
-		typedef std::tuple<T1,T2,T3,T4,T5>      ParamsType;
-		typedef std::tuple<>    ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params)   { fn(std::get<0>(params), std::get<1>(params), std::get<2>(params), std::get<3>(params), std::get<4>(params)); return ReturnType(); }
-	};
-	template<typename R, typename T1, typename T2, typename T3, typename T4, typename T5>
-	struct LuaContext::FnTupleWrapper<R (T1,T2,T3,T4,T5)>
-	{
-		typedef std::tuple<T1,T2,T3,T4,T5>      ParamsType;
-		typedef typename LuaContext::Tupleizer<R>::type ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params)           { return ReturnType(fn(std::get<0>(params), std::get<1>(params), std::get<2>(params), std::get<3>(params), std::get<4>(params))); }
-	};
-	template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-	struct LuaContext::FnTupleWrapper<void (T1,T2,T3,T4,T5,T6)>
-	{
-		typedef std::tuple<T1,T2,T3,T4,T5,T6>   ParamsType;
-		typedef std::tuple<>    ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params)   { fn(std::get<0>(params), std::get<1>(params), std::get<2>(params), std::get<3>(params), std::get<4>(params), std::get<5>(params)); return ReturnType(); }
-	};
-	template<typename R, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-	struct LuaContext::FnTupleWrapper<R (T1,T2,T3,T4,T5,T6)>
-	{
-		typedef std::tuple<T1,T2,T3,T4,T5,T6>   ParamsType;
-		typedef typename LuaContext::Tupleizer<R>::type ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params)           { return ReturnType(fn(std::get<0>(params), std::get<1>(params), std::get<2>(params), std::get<3>(params), std::get<4>(params), std::get<5>(params))); }
-	};
-	template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-	struct LuaContext::FnTupleWrapper<void (T1,T2,T3,T4,T5,T6,T7)>
-	{
-		typedef std::tuple<T1,T2,T3,T4,T5,T6,T7>        ParamsType;
-		typedef std::tuple<>    ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params)   { fn(std::get<0>(params), std::get<1>(params), std::get<2>(params), std::get<3>(params), std::get<4>(params), std::get<5>(params), std::get<6>(params)); return ReturnType(); }
-	};
-	template<typename R, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-	struct LuaContext::FnTupleWrapper<R (T1,T2,T3,T4,T5,T6,T7)>
-	{
-		typedef std::tuple<T1,T2,T3,T4,T5,T6,T7> ParamsType;
-		typedef typename LuaContext::Tupleizer<R>::type ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params) { return ReturnType(fn(std::get<0>(params), std::get<1>(params), std::get<2>(params), std::get<3>(params), std::get<4>(params), std::get<5>(params), std::get<6>(params))); }
-	};
-	template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-	struct LuaContext::FnTupleWrapper<void (T1,T2,T3,T4,T5,T6,T7,T8)>
-	{
-		typedef std::tuple<T1,T2,T3,T4,T5,T6,T7,T8> ParamsType;
-		typedef std::tuple<> ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params) { fn(std::get<0>(params), std::get<1>(params), std::get<2>(params), std::get<3>(params), std::get<4>(params), std::get<5>(params), std::get<6>(params), std::get<7>(params)); return ReturnType(); }
-	};
-	template<typename R, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-	struct LuaContext::FnTupleWrapper<R (T1,T2,T3,T4,T5,T6,T7,T8)>
-	{
-		typedef std::tuple<T1,T2,T3,T4,T5,T6,T7,T8> ParamsType;
-		typedef typename LuaContext::Tupleizer<R>::type ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params) { return ReturnType(fn(std::get<0>(params), std::get<1>(params), std::get<2>(params), std::get<3>(params), std::get<4>(params), std::get<5>(params), std::get<6>(params), std::get<7>(params))); }
-	};
-	template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
-	struct LuaContext::FnTupleWrapper<void (T1,T2,T3,T4,T5,T6,T7,T8,T9)>
-	{
-		typedef std::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9>  ParamsType;
-		typedef std::tuple<>    ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params) { fn(std::get<0>(params), std::get<1>(params), std::get<2>(params), std::get<3>(params), std::get<4>(params), std::get<5>(params), std::get<6>(params), std::get<7>(params), std::get<8>(params)); return ReturnType(); }
-	};
-	template<typename R, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
-	struct LuaContext::FnTupleWrapper<R (T1,T2,T3,T4,T5,T6,T7,T8,T9)>
-	{
-		typedef std::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9>  ParamsType;
-		typedef typename LuaContext::Tupleizer<R>::type ReturnType;
-		template<typename T>
-		static ReturnType call(const T& fn, const ParamsType& params) { return ReturnType(fn(std::get<0>(params), std::get<1>(params), std::get<2>(params), std::get<3>(params), std::get<4>(params), std::get<5>(params), std::get<6>(params), std::get<7>(params), std::get<8>(params))); }
-	};
+	template<typename FnType> struct LuaContext::FnTupleWrapper { };
 
+	namespace detail
+	{
+		template<typename R, typename F, typename Tuple, bool Done, int Total, int... N> struct call_impl
+		{
+			inline static R call(F f, Tuple && t) { return call_impl<R, F, Tuple, Total == 1 + sizeof...(N), Total, N..., sizeof...(N)>::call(f, std::forward<Tuple>(t)); }
+		};
+
+		template<typename R, typename F, typename Tuple, int Total, int... N> struct call_impl<R, F, Tuple, true, Total, N...>
+		{
+			inline static R call(F f, Tuple && t) { return f(std::get<N>(std::forward<Tuple>(t))...); }
+		};
+	}
+
+	template<typename R, typename F, typename Tuple> R calltpl(F f, Tuple && t)
+	{
+		typedef typename std::decay<Tuple>::type ttype;
+		return detail::call_impl<R, F, Tuple, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>::call(f, std::forward<Tuple>(t));
+	}
+
+
+	template<typename... TArgs> struct LuaContext::FnTupleWrapper<void(TArgs...)>
+	{
+		static const int count = sizeof...(TArgs); using ParamsType = std::tuple<TArgs...>;
+		template<typename T> static std::tuple<> call(const T& fn, ParamsType mTpl) { calltpl<void>(fn, mTpl); return std::tuple<>(); }
+	};
+	template<typename R, typename... TArgs> struct LuaContext::FnTupleWrapper<R(TArgs...)>
+	{
+		static const int count = sizeof...(TArgs); using ParamsType = std::tuple<TArgs...>;
+		template<typename T> static std::tuple<R> call(const T& fn, ParamsType mTpl) { return std::tuple<R>(calltpl<R>(fn, mTpl)); }
+	};
 
 	// this structure takes a member function pointer and returns its base type
 	// typically used on a functor T, like: std::function<RemoveMemberPtr<decltype(&T::operator())>::type>
-
-	template<typename R, typename T, typename... Args> struct LuaContext::RemoveMemberPtr<R (T::*)(Args...)> { typedef R (type)(Args...); };
-	template<typename R, typename T, typename... Args> struct LuaContext::RemoveMemberPtr<R (T::*)(Args...) const> { typedef R (type)(Args...); };
-	template<typename R, typename T, typename... Args> struct LuaContext::RemoveMemberPtr<R (T::*)(Args...) volatile> { typedef R (type)(Args...); };
-	template<typename R, typename T, typename... Args> struct LuaContext::RemoveMemberPtr<R (T::*)(Args...) const volatile> { typedef R (type)(Args...); };
-
-
+	template<typename R, typename T, typename... Args> struct LuaContext::RemoveMemberPtr<R(T::*)(Args...)> { typedef R(type)(Args...); };
+	template<typename R, typename T, typename... Args> struct LuaContext::RemoveMemberPtr<R(T::*)(Args...) const> { typedef R(type)(Args...); };
+	template<typename R, typename T, typename... Args> struct LuaContext::RemoveMemberPtr<R(T::*)(Args...) volatile> { typedef R(type)(Args...); };
+	template<typename R, typename T, typename... Args> struct LuaContext::RemoveMemberPtr<R(T::*)(Args...) const volatile> { typedef R(type)(Args...); };
 
 	// this structure takes a template parameter T
 	// if T is a tuple, it returns T ; if T is not a tuple, it returns std::tuple<T>
