@@ -57,19 +57,40 @@ extern "C"
 
 namespace Lua
 {
-	/** \brief Defines a Lua context
-	\details A Lua context is used to interpret Lua code. Since everything in Lua is a variable (including functions),
-			we only provide few functions like readVariable and writeVariable. Note that these functions can visit arrays,
-			ie. calling readVariable("a.b.c") will read variable "c" from array "b", which is itself located in array "a".
-
-			You can also write variables with C++ functions so that they are callable by Lua. Note however that you HAVE TO convert
-			your function to std::function (not directly std::bind or a lambda function) so the class can detect which argument types
-			it wants. These arguments may only be of basic types (int, float, etc.) or std::string.
-*/
+	/**
+	 * @brief Defines a Lua context
+	 *
+	 * A Lua context is used to interpret Lua code. Since everything in Lua is a variable (including functions),
+	 * we only provide few functions like readVariable and writeVariable. Note that these functions can visit arrays,
+	 * ie. calling readVariable("a.b.c") will read variable "c" from array "b", which is itself located in array "a".
+	 * You can also write variables with C++ functions so that they are callable by Lua. Note however that you HAVE TO convert
+	 * your function to std::function (not directly std::bind or a lambda function) so the class can detect which argument types
+	 * it wants. These arguments may only be of basic types (int, float, etc.) or std::string.
+	*/
 	class LuaContext
 	{
 		public:
-			explicit LuaContext(bool openDefaultLibs = true);
+			explicit LuaContext(bool openDefaultLibs = true)
+			{
+				// we pass this allocator function to lua_newstate we use our custom allocator instead of luaL_newstate, to trace memory usage
+				struct Allocator
+				{
+					static void* allocator(void*, void* ptr, std::size_t, std::size_t nsize)
+					{
+						if(nsize == 0) { free(ptr); return nullptr; }
+						return realloc(ptr, nsize);
+					}
+				};
+
+				// lua_newstate can return null if allocation failed
+				_state = lua_newstate(&Allocator::allocator, nullptr);
+				if(_state == nullptr) throw(std::bad_alloc());
+
+				// opening default library if required to do so
+				if(openDefaultLibs) luaL_openlibs(_state);
+			}
+			LuaContext(const LuaContext&) = delete;
+			LuaContext& operator=(const LuaContext&) = delete;
 			LuaContext(LuaContext&& s) : _state(s._state) { s._state = nullptr; }
 			LuaContext& operator=(LuaContext&& s) { std::swap(_state, s._state); return *this; }
 			~LuaContext() { if(_state != nullptr) lua_close(_state); }
@@ -115,40 +136,35 @@ namespace Lua
 			template<typename T> void unregisterFunction(const std::string& name) { _unregisterFunction<T>(name); }
 			/// \brief Calls a function stored in a lua variable
 			/// \details Template parameter of the function should be the expected return type (tuples and void are supported)
-			/// \param variableName Name of the variable containing the function to call
+			/// \param mVarName Name of the variable containing the function to call
 			/// \param ... Parameters to pass to the function
-			template<typename R, typename... Args>
-			R callLuaFunction(const std::string& variableName, const Args&... args)
-			{
-				_getGlobal(variableName);
-				return _call<R>(std::make_tuple(args...));
-			}
+			template<typename R, typename... Args> R callLuaFunction(const std::string& mVarName, const Args&... args) { _getGlobal(mVarName); return _call<R>(std::make_tuple(args...)); }
 
 
-			/// \brief Returns true if the value of the variable is an array \param variableName Name of the variable to check
-			bool isVariableArray(const std::string& variableName) const;
+			/// \brief Returns true if the value of the variable is an array \param mVarName Name of the variable to check
+			bool isVariableArray(const std::string& mVarName) const { _getGlobal(mVarName); bool answer = lua_istable(_state, -1); lua_pop(_state, 1); return answer; }
 
 			/// \brief Writes an empty array into the given variable \note To write something in the array, use writeVariable. Example: writeArrayIntoVariable("myArr"); writeVariable("myArr.something", 5);
-			void writeArrayIntoVariable(const std::string& variableName);
+			void writeArrayIntoVariable(const std::string& mVarName) { lua_newtable(_state); _setGlobal(mVarName); }
 
 			/// \brief Returns true if variable exists (ie. not nil)
-			bool doesVariableExist(const std::string& variableName) const { _getGlobal(variableName); bool answer = lua_isnil(_state, -1); lua_pop(_state, 1); return !answer; }
+			bool doesVariableExist(const std::string& mVarName) const { _getGlobal(mVarName); bool answer = lua_isnil(_state, -1); lua_pop(_state, 1); return !answer; }
 
 			/// \brief Destroys a variable \details Puts the nil value into it
-			void clearVariable(const std::string& variableName) { lua_pushnil(_state); _setGlobal(variableName); }
+			void clearVariable(const std::string& mVarName) { lua_pushnil(_state); _setGlobal(mVarName); }
 
 			/// \brief Returns the content of a variable \throw VariableDoesntExistException if variable doesn't exist \note If you wrote a ObjectWrapper<T> into a variable, you can only read its value using a std::shared_ptr<T>
-			template<typename T> T readVariable(const std::string& variableName) const { _getGlobal(variableName); return _readTopAndPop(1, (T*)nullptr); }
+			template<typename T> T readVariable(const std::string& mVarName) const { _getGlobal(mVarName); return _readTopAndPop(1, (T*)nullptr); }
 			/// \brief
-			template<typename T> bool readVariableIfExists(const std::string& variableName, T& out) { if(!doesVariableExist(variableName)) return false; out = readVariable<T>(variableName); return true; }
+			template<typename T> bool readVariableIfExists(const std::string& mVarName, T& out) { if(!doesVariableExist(mVarName)) return false; out = readVariable<T>(mVarName); return true; }
 
 			/// \brief Changes the content of a global lua variable
 			/// \details Accepted values are: all base types (integers, floats), std::string, std::function or ObjectWrapper<...>. All objects are passed by copy and destroyed by the garbage collector.
-			template<typename T> void writeVariable(const std::string& variableName, T&& data)
+			template<typename T> void writeVariable(const std::string& mVarName, T&& data)
 			{
 				static_assert(!std::is_same<typename Tupleizer<T>::type,T>::value, "Error: you can't use LuaContext::writeVariable with a tuple");
 				const int pushedElems = _push(std::forward<T>(data));
-				try { _setGlobal(variableName); }
+				try { _setGlobal(mVarName); }
 				catch(...) { lua_pop(_state, pushedElems - 1); throw; }
 				lua_pop(_state, pushedElems - 1);
 			}
@@ -156,10 +172,6 @@ namespace Lua
 
 
 		private:
-			// forbidding copy
-			LuaContext(const LuaContext&);
-			LuaContext& operator=(const LuaContext&);
-
 			// the state is the most important variable in the class since it is our interface with Lua
 			// the mutex is here because the lua design is not thread safe (based on a stack)
 			//   eg. if multiple thread call "writeVariable" at the same time, we don't want them to be executed simultaneously
@@ -174,14 +186,89 @@ namespace Lua
 			// see also http://www.lua.org/manual/5.1/manual.html#lua_getglobal
 			// same for setGlobal <=> lua_setglobal
 			// important: _setGlobal will pop the value even if it throws an exception, while _getGlobal won't push the value if it throws an exception
-			void _getGlobal(const std::string& variable) const;
-			void _setGlobal(const std::string& variable);
+			void _getGlobal(const std::string& mVarName) const
+			{
+				// first a little optimization: if mVarName contains no dot, we can directly call lua_getglobal
+				if(find(mVarName.begin(), mVarName.end(), '.') == mVarName.end()) { lua_getglobal(_state, mVarName.c_str()); return; }
 
+				// mVarName is split by dots '.' in arrays and subarrays
+				// the nextVar variable contains a pointer to the next part to proceed
+				auto nextVar = mVarName.begin();
+
+				do
+				{
+					// since we are going to modify nextVar, we store its value here
+					auto currentVar = nextVar;
+
+					// first we extract the part between currentVar and the next dot we encounter
+					nextVar = find(currentVar, mVarName.end(), '.');
+					std::string buffer(currentVar, nextVar);
+					// since nextVar is pointing to a dot, we have to increase it first in order to find the next variable
+					if(nextVar != mVarName.end()) ++nextVar;
+
+					// ask lua to find the part stored in buffer
+					// if currentVar == begin, this is a global variable and push it on the stack
+					// otherwise we already have an array pushed on the stack by the previous loop
+					if(currentVar == mVarName.begin()) lua_getglobal(_state, buffer.c_str());
+					else
+					{
+						// if mVarName is "a.b" and "a" is not a table (eg. it's a number or a std::string), this happens
+						// we don't have a specific exception for this, we consider this as a variable-doesn't-exist
+						if(!lua_istable(_state, -1)) { lua_pop(_state, 1); throw(VariableDoesntExistException(mVarName)); }
+
+						// replacing the current table in the stack by its member
+						lua_pushstring(_state, buffer.c_str());
+						lua_gettable(_state, -2);
+						lua_remove(_state, -2);
+					}
+
+					// lua will accept anything as variable name, but if the variable doesn't exist
+					//   it will simply push "nil" instead of a value
+					// so if we have a nil on the stack, the variable didn't exist and we throw
+					if(lua_isnil(_state, -1)) { lua_pop(_state, 1); throw(VariableDoesntExistException(mVarName)); }
+
+					currentVar = nextVar; // updating currentVar
+				}
+				while (nextVar != mVarName.end());
+			}
+			void _setGlobal(const std::string& mVarName)
+			{
+				try
+				{
+					assert(lua_gettop(_state) >= 1); // making sure there's something on the stack (ie. the value to set)
+
+					// two possibilities: either "variable" is a global variable, or a member of an array
+					std::size_t lastDot = mVarName.find_last_of('.');
+					if(lastDot == std::string::npos)
+					{
+						// this is the first case, we simply call setglobal (which cleans the stack)
+						lua_setglobal(_state, mVarName.c_str());
+					}
+					else
+					{
+						const auto tableName = mVarName.substr(0, lastDot);
+
+						// in the second case, we call _getGlobal on the table name
+						_getGlobal(tableName);
+						try
+						{
+							if(!lua_istable(_state, -1)) throw(VariableDoesntExistException(mVarName));
+
+							// now we have our value at -2 (was pushed before _setGlobal is called) and our table at -1
+							lua_pushstring(_state, mVarName.substr(lastDot + 1).c_str()); // value at -3, table at -2, key at -1
+							lua_pushvalue(_state, -3); // value at -4, table at -3, key at -2, value at -1
+							lua_settable(_state, -3); // value at -2, table at -1
+							lua_pop(_state, 2); // stack empty \o/
+						}
+						catch(...) { lua_pop(_state, 2); throw; }
+					}
+				}
+				catch(...) { lua_pop(_state, 1); throw; }
+			}
 			// simple function that reads the top # elements of the stack, pops them, and returns them
 			// warning: first parameter is the number of parameters, not the parameter index
 			// if _read generates an exception, stack is poped anyway
-			template<typename R>
-			typename std::enable_if<!std::is_void<R>::value,R>::type _readTopAndPop(int nb, R* ptr = nullptr) const
+			template<typename R> typename std::enable_if<!std::is_void<R>::value,R>::type _readTopAndPop(int nb, R* ptr = nullptr) const
 			{
 				try { const R value = _read(-nb, ptr); lua_pop(_state, nb); return value; }
 				catch(...) { lua_pop(_state, nb); throw; }
@@ -240,7 +327,44 @@ namespace Lua
 			/**************************************************/
 			// this function loads data from the stream and pushes a function at the top of the stack
 			// it is defined in the .cpp
-			void _load(std::istream& code);
+			void _load(std::istream& code)
+			{
+				// since the lua_load function requires a static function, we use this structure
+				// the Reader structure is at the same time an object storing an std::istream and a buffer,
+				// and a static function provider
+				struct Reader
+				{
+					std::istream& stream; char buffer[512];
+					Reader(std::istream& str) : stream(str) { }
+
+					// read function ; "data" must be an instance of Reader
+					static const char* read(lua_State*, void* data, std::size_t* size)
+					{
+						assert(size != nullptr);
+						assert(data != nullptr);
+						Reader& me = *((Reader*)data);
+						if(me.stream.eof()) { *size = 0; return nullptr; }
+
+						me.stream.read(me.buffer, sizeof(me.buffer));
+						*size = std::size_t(me.stream.gcount()); // gcount could return a value larger than a std::size_t, but its maximum is sizeof(me.buffer) so there's no problem
+						return me.buffer;
+					}
+				};
+
+				// we create an instance of Reader, and we call lua_load
+				std::unique_ptr<Reader> reader(new Reader(code));
+				auto loadReturnValue = lua_load(_state, &Reader::read, reader.get(), "chunk");
+
+				// now we have to check return value
+				if(loadReturnValue != 0)
+				{
+					// there was an error during loading, an error message was pushed on the stack
+					const char* errorMsg = lua_tostring(_state, -1);
+					lua_pop(_state, 1);
+					if(loadReturnValue == LUA_ERRMEM) throw(std::bad_alloc());
+					else if(loadReturnValue == LUA_ERRSYNTAX) throw(SyntaxErrorException(std::string(errorMsg)));
+				}
+			}
 
 			// this function calls what is on the top of the stack and removes it (just like lua_call)
 			// if an exception is triggered, the top of the stack will be removed anyway
@@ -283,10 +407,9 @@ namespace Lua
 			class Table
 			{
 				public:
-					Table() { }
+					Table() = default;
 					Table(Table&& t) { swap(t, *this); }
 					Table& operator=(Table&& t) { swap(t, *this); return *this; }
-					~Table() { }
 
 					template<typename... Args> explicit Table(Args... args) { insert(args...); }
 
@@ -322,26 +445,22 @@ namespace Lua
 					// the push function should add the key/value pair to the table currently at the top of the stack
 					struct ElementBase
 					{
-						virtual ~ElementBase() {}
+						virtual ~ElementBase() { }
 						virtual void push(LuaContext&) const = 0;
 					};
 
 					// derivate of ElementBase, real implementation
 					template<typename Key, typename Value> struct Element : public ElementBase
 					{
-						Element(Key k, Value v) : key(std::move(k)), value(std::move(v)) {}
-						~Element() {}
+						Key key; Value value;
+						Element(Key k, Value v) : key(std::move(k)), value(std::move(v)) { }
 
 						void push(LuaContext& ctxt) const
 						{
 							assert(lua_istable(ctxt._state, -1));
-							ctxt._push(key);
-							ctxt._push(value);
+							ctxt._push(key); ctxt._push(value);
 							lua_settable(ctxt._state, -3);
 						}
-
-						Key key;
-						Value value;
 					};
 
 					// pushing the whole array
@@ -349,16 +468,8 @@ namespace Lua
 					int _push(LuaContext& ctxt) const
 					{
 						lua_newtable(ctxt._state);
-						try
-						{
-							for(auto i = _elements.begin(); i != _elements.end(); ++i)
-								(*i)->push(ctxt);
-						}
-						catch(...)
-						{
-							lua_pop(ctxt._state, 1);
-							throw;
-						}
+						try { for(auto& i : _elements) i->push(ctxt); }
+						catch(...) { lua_pop(ctxt._state, 1); throw; }
 						return 1;
 					}
 
@@ -376,33 +487,22 @@ namespace Lua
 			template<typename Input, typename = void> struct ToPushableType;
 
 			// first the basic ones: integer, number, boolean, string
-			int _push() { return 0; }
-			int _push(bool v) { lua_pushboolean(_state, v); return 1; }
+			int _push()						{ return 0; }
+			int _push(bool v)				{ lua_pushboolean(_state, v); return 1; }
 			int _push(const std::string& s) { lua_pushstring(_state, s.c_str()); return 1; }
-			int _push(const char* s) { lua_pushstring(_state, s); return 1; }
+			int _push(const char* s)		{ lua_pushstring(_state, s); return 1; }
 
 			// pushing floating numbers
-			template<typename T> typename std::enable_if<std::is_floating_point<T>::value,int>::type _push(T nb)
-			{
-				lua_pushnumber(_state, nb);
-				return 1;
-			}
+			template<typename T> typename std::enable_if<std::is_floating_point<T>::value,int>::type _push(T nb) { lua_pushnumber(_state, nb); return 1; }
 
 			// pushing integers
-			template<typename T> typename std::enable_if<std::is_integral<T>::value,int>::type _push(T nb)
-			{
-				lua_pushinteger(_state, nb);
-				return 1;
-			}
+			template<typename T> typename std::enable_if<std::is_integral<T>::value,int>::type _push(T nb) { lua_pushinteger(_state, nb); return 1; }
 
 			// using variadic templates, you can push multiple values at once
 			template<typename T1, typename T2, typename... Args> int _push(T1&& v1, T2&& v2, Args&&... args)
 			{
 				int p = _push(std::forward<T1>(v1));
-				try
-				{
-					p += _push(std::forward<T2>(v2), args...);
-				}
+				try { p += _push(std::forward<T2>(v2), args...); }
 				catch(...) { lua_pop(_state, p); throw; }
 				return p;
 			}
@@ -414,14 +514,7 @@ namespace Lua
 			template<typename Key, typename Value> int _push(const std::map<Key,Value>& map)
 			{
 				lua_newtable(_state);
-
-				for(auto i = map.begin(); i != map.end(); ++i)
-				{
-					_push(i->first);
-					_push(i->second);
-					lua_settable(_state, -3);
-				}
-
+				for(const auto& p : map) { _push(p.first); _push(p.second); lua_settable(_state, -3); }
 				return 1;
 			}
 
@@ -450,7 +543,7 @@ namespace Lua
 					// the first two correspond to the params list and return type as tuples
 					//   and "call" is a static function which will call a function
 					//   of this type using parameters passed as a tuple
-					typedef LuaContext::FnTupleWrapper<FnType> TupledFunction;
+					using TupledFunction = LuaContext::FnTupleWrapper<FnType> ;
 
 					// checking if number of parameters is correct
 					const int paramsCount = TupledFunction::count;
@@ -462,9 +555,7 @@ namespace Lua
 						lua_pushnumber(state, paramsCount);
 						lua_pushstring(state, " parameter(s)");
 						lua_concat(state, 4);
-
-						// lua_error throws an exception when compiling as C++
-						return lua_error(state);
+						return lua_error(state); // lua_error throws an exception when compiling as C++
 					}
 
 					// reading parameters from the stack
@@ -486,7 +577,6 @@ namespace Lua
 				{
 					// this function is called when the lua script tries to call our custom data type
 					// what we do is we simply call the function
-
 					assert(lua_gettop(lua) >= 1);
 					assert(lua_isuserdata(lua, 1));
 					FunctionPushType* function = (FunctionPushType*)lua_touserdata(lua, 1);
@@ -498,7 +588,6 @@ namespace Lua
 				{
 					// this one is called when lua's garbage collector no longer needs our custom data type
 					// we call std::function<int (lua_State*)>'s destructor
-
 					assert(lua_gettop(lua) == 1);
 					FunctionPushType* function = (FunctionPushType*)lua_touserdata(lua, 1);
 					assert(function);
@@ -537,18 +626,13 @@ namespace Lua
 			// when pushing a unique_ptr, it is simply converted to a shared_ptr
 			// this definition is necessary because unique_ptr has an implicit bool conversion operator
 			// with C++0x, this bool operator will certainly be declared explicit
-			template<typename T>
-			int _push(std::unique_ptr<T> obj)
-			{
-				return _push(std::shared_ptr<T>(std::move(obj)));
-			}
+			template<typename T> int _push(std::unique_ptr<T> mObj) { return _push(std::shared_ptr<T>(std::move(mObj))); }
 
 			// when pushing a shared_ptr, we create a custom type
 			// we store a copy of the shared_ptr inside lua's internals
 			//   and add it a metatable: __gc for destruction and __index pointing to the corresponding
 			//   table in the registry (see _registerFunction)
-			template<typename T>
-			int _push(std::shared_ptr<T> obj)
+			template<typename T> int _push(std::shared_ptr<T> mObj)
 			{
 				// this is a structure providing static C-like functions that we can feed to lua
 				struct Callback
@@ -571,7 +655,7 @@ namespace Lua
 				std::shared_ptr<T>* const pointerLocation = (std::shared_ptr<T>*)lua_newuserdata(_state, sizeof(std::shared_ptr<T>));
 				try
 				{
-					new (pointerLocation) std::shared_ptr<T>(std::move(obj));
+					new (pointerLocation) std::shared_ptr<T>(std::move(mObj));
 
 					// creating the metatable (over the object on the stack)
 					// lua_settable pops the key and value we just pushed, so stack management is easy
@@ -717,11 +801,10 @@ namespace Lua
 
 			// reading a shared_ptr
 			// we check that type is correct by reading the metatable
-			template<typename T>
-			std::shared_ptr<T> _read(int index, std::shared_ptr<T> const* = nullptr) const
+			template<typename T> std::shared_ptr<T> _read(int mIdx, std::shared_ptr<T> const* = nullptr) const
 			{
-				if(!lua_isuserdata(_state, index)) throw(WrongTypeException());
-				if(!lua_getmetatable(_state, index)) throw(WrongTypeException());
+				if(!lua_isuserdata(_state, mIdx)) throw(WrongTypeException());
+				if(!lua_getmetatable(_state, mIdx)) throw(WrongTypeException());
 
 				// now we have our metatable on the top of the stack
 				// retrieving its _typeid member
@@ -736,7 +819,7 @@ namespace Lua
 				lua_pop(_state, 2);
 
 				// now we know that the type is correct, we retrieve the pointer
-				const auto ptr = static_cast<std::shared_ptr<T>*>(lua_touserdata(_state, index));
+				const auto ptr = static_cast<std::shared_ptr<T>*>(lua_touserdata(_state, mIdx));
 				assert(ptr && *ptr);
 				return *ptr;            // returning a copy of the shared_ptr
 			}
@@ -788,38 +871,37 @@ namespace Lua
 	// a ParamsType type which converts the function parameters into a tuple,
 	// a ReturnType type which is either std::tuple<> (if void) or std::tuple<original return type>
 	// a call function which calls the function using a tuple of type ParamsType, and returns ReturnType
-	// this class only supports functions with up to 9 parameters, if you want more either add it yourself or wait for variadic templates
 	template<typename FnType> struct LuaContext::FnTupleWrapper { };
 
 	namespace detail
 	{
-		template<typename R, typename F, typename Tuple, bool Done, int Total, int... N> struct call_impl
+		template<typename R, typename F, typename Tuple, bool Done, int Total, int... N> struct callTplImpl
 		{
-			inline static R call(F f, Tuple && t) { return call_impl<R, F, Tuple, Total == 1 + sizeof...(N), Total, N..., sizeof...(N)>::call(f, std::forward<Tuple>(t)); }
+			inline static R call(F f, Tuple&& t) { return callTplImpl<R, F, Tuple, Total == 1 + sizeof...(N), Total, N..., sizeof...(N)>::call(f, std::forward<Tuple>(t)); }
 		};
 
-		template<typename R, typename F, typename Tuple, int Total, int... N> struct call_impl<R, F, Tuple, true, Total, N...>
+		template<typename R, typename F, typename Tuple, int Total, int... N> struct callTplImpl<R, F, Tuple, true, Total, N...>
 		{
-			inline static R call(F f, Tuple && t) { return f(std::get<N>(std::forward<Tuple>(t))...); }
+			inline static R call(F f, Tuple&& t) { return f(std::get<N>(std::forward<Tuple>(t))...); }
 		};
 	}
 
-	template<typename R, typename F, typename Tuple> R calltpl(F f, Tuple && t)
+	template<typename R, typename F, typename Tuple> R callTpl(F f, Tuple && t)
 	{
 		typedef typename std::decay<Tuple>::type ttype;
-		return detail::call_impl<R, F, Tuple, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>::call(f, std::forward<Tuple>(t));
+		return detail::callTplImpl<R, F, Tuple, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>::call(f, std::forward<Tuple>(t));
 	}
 
 
 	template<typename... TArgs> struct LuaContext::FnTupleWrapper<void(TArgs...)>
 	{
 		static const int count = sizeof...(TArgs); using ParamsType = std::tuple<TArgs...>;
-		template<typename T> static std::tuple<> call(const T& fn, ParamsType mTpl) { calltpl<void>(fn, mTpl); return std::tuple<>(); }
+		template<typename T> static std::tuple<> call(const T& fn, ParamsType mTpl) { callTpl<void>(fn, mTpl); return std::tuple<>(); }
 	};
 	template<typename R, typename... TArgs> struct LuaContext::FnTupleWrapper<R(TArgs...)>
 	{
 		static const int count = sizeof...(TArgs); using ParamsType = std::tuple<TArgs...>;
-		template<typename T> static std::tuple<R> call(const T& fn, ParamsType mTpl) { return std::tuple<R>(calltpl<R>(fn, mTpl)); }
+		template<typename T> static std::tuple<R> call(const T& fn, ParamsType mTpl) { return std::tuple<R>(callTpl<R>(fn, mTpl)); }
 	};
 
 	// this structure takes a member function pointer and returns its base type
@@ -832,9 +914,9 @@ namespace Lua
 	// this structure takes a template parameter T
 	// if T is a tuple, it returns T ; if T is not a tuple, it returns std::tuple<T>
 	// you have to use this structure because std::tuple<std::tuple<...>> triggers a bug in both MSVC++ and GCC
-	template<typename T> struct LuaContext::Tupleizer { typedef std::tuple<T> type; };
-	template<typename... Args> struct LuaContext::Tupleizer<std::tuple<Args...>> { typedef std::tuple<Args...> type; };
-	template<> struct LuaContext::Tupleizer<void> { typedef std::tuple<> type; };
+	template<typename T> struct LuaContext::Tupleizer								{ using type = std::tuple<T>; };
+	template<typename... TArgs> struct LuaContext::Tupleizer<std::tuple<TArgs...>>	{ using type = std::tuple<TArgs...>; };
+	template<> struct LuaContext::Tupleizer<void>									{ using type = std::tuple<>; };
 }
 
 #endif

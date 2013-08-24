@@ -7,13 +7,6 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -W -pedantic -pthread" CACHE STRIN
 set(CMAKE_CXX_FLAGS_DEBUG "-fno-omit-frame-pointer -g3 -gdwarf-2 -Og" CACHE STRING "" FORCE)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/;${CMAKE_MODULE_PATH}")
 
-set(BUILD_SHARED_LIB TRUE CACHE BOOL "Build shared libraries.")
-if(BUILD_SHARED_LIB)
-	set(LIB_TYPE SHARED)
-else()
-	set(LIB_TYPE STATIC)
-endif()
-
 find_package(LUA REQUIRED)
 if(LUA_FOUND)
 	include_directories(${LUA_INCLUDE_DIR})
@@ -28,15 +21,7 @@ set(INC_DIR "include")
 file(GLOB_RECURSE SRC_LIST "${INC_DIR}/*" "${SRC_DIR}/*")
 
 include_directories(${INC_DIR})
-add_library(${PROJECT_NAME} ${LIB_TYPE} ${SRC_LIST})
-target_link_libraries(${PROJECT_NAME} ${LUA_LIBRARY})
+add_library(HEADER_ONLY_TARGET STATIC ${SRC_LIST})
+set_target_properties(HEADER_ONLY_TARGET PROPERTIES LINKER_LANGUAGE CXX)
 
-if(BUILD_SHARED_LIB)
-	set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX -d)
-else()
-	set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX -s-d)
-	set_target_properties(${PROJECT_NAME} PROPERTIES RELEASE_POSTFIX -s)
-endif()
-
-install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION lib LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 install(DIRECTORY ${INC_DIR} DESTINATION .)
