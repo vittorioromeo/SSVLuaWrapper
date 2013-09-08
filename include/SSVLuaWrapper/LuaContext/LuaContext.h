@@ -229,7 +229,7 @@ namespace Lua
 
 					currentVar = nextVar; // updating currentVar
 				}
-				while (nextVar != mVarName.end());
+				while(nextVar != mVarName.end());
 			}
 			void _setGlobal(const std::string& mVarName)
 			{
@@ -757,7 +757,7 @@ namespace Lua
 
 				// we traverse the table at the top of the stack
 				lua_pushnil(_state);            // first key
-				while (lua_next(_state, index - 1) != 0)
+				while(lua_next(_state, index - 1) != 0)
 				{
 					// now a key and its value are pushed on the stack
 					retValue.insert(std::make_pair(_read(-2, static_cast<Key*>(nullptr)), _read(-2, static_cast<Value*>(nullptr))));
@@ -777,7 +777,7 @@ namespace Lua
 
 		// we traverse the table at the top of the stack
 		lua_pushnil(_state);            // first key
-		while (lua_next(_state, -2) != 0) {
+		while(lua_next(_state, -2) != 0) {
 				// now a key and its value are pushed on the stack
 				auto keyType = lua_type(_state, -2);
 				auto valueType = lua_type(_state, -1);
