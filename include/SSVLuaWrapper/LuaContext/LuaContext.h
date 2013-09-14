@@ -57,6 +57,52 @@ extern "C"
 
 namespace Lua
 {
+	namespace Internal
+	{
+		template<unsigned K, class F, class Tup> struct Expander
+		{
+			template<class... Us> static auto expand(F&& f, Tup&& t, Us&&... args)
+				-> decltype(Expander<K - 1, F, Tup>::expand(std::forward<F>(f), std::forward<Tup>(t), std::get<K - 1>(std::forward<Tup>(t)), std::forward<Us>(args)...))
+			{
+				return Expander<K - 1, F, Tup>::expand(std::forward<F>(f), std::forward<Tup>(t), std::get<K - 1>(std::forward<Tup>(t)), std::forward<Us>(args)...);
+			}
+		};
+
+		template<class F, class Tup> struct Expander<0, F, Tup>
+		{
+			template<class... Us> static auto expand(F&& f, Tup&& t, Us&&... args) -> decltype(f(std::forward<Us>(args)...)) { return f(std::forward<Us>(args)...); }
+		};
+	}
+
+	template<class F, class... Ts> auto explode(F&& f, const std::tuple<Ts...>& t) -> decltype(Internal::Expander<sizeof...(Ts), F, const std::tuple<Ts...>&>::expand(std::forward<F>(f), t))
+	{
+		return Internal::Expander<sizeof...(Ts), F, const std::tuple<Ts...>&>::expand(std::forward<F>(f), t);
+	}
+	template<class F, class... Ts> auto explode(F&& f, std::tuple<Ts...>& t) -> decltype(Internal::Expander<sizeof...(Ts), F, std::tuple<Ts...>&>::expand(std::forward<F>(f), t))
+	{
+		return Internal::Expander<sizeof...(Ts), F, std::tuple<Ts...>&>::expand(std::forward<F>(f), t);
+	}
+	template<class F, class... Ts> auto explode(F&& f, std::tuple<Ts...>&& t) -> decltype(Internal::Expander<sizeof...(Ts), F, std::tuple<Ts...>&&>::expand(std::forward<F>(f), std::move(t)))
+	{
+		return Internal::Expander<sizeof...(Ts), F, std::tuple<Ts...>&&>::expand(std::forward<F>(f), std::move(t));
+	}
+
+	template<typename> struct RemoveMemberPtr;
+	template<typename TReturn, typename TThis, typename... TArgs> struct RemoveMemberPtr<TReturn(TThis::*)(TArgs...) const> { using Type = TReturn(TArgs...); };
+
+	template<typename> struct FnTupleWrapper;
+	template<typename FnType> struct FnTupleWrapper { };
+	template<typename... TArgs> struct FnTupleWrapper<void(TArgs...)>
+	{
+		static constexpr int count{sizeof...(TArgs)}; using ParamsType = std::tuple<TArgs...>;
+		template<typename T> static std::tuple<> call(const T& fn, ParamsType mTpl) { explode(fn, mTpl); return {}; }
+	};
+	template<typename R, typename... TArgs> struct FnTupleWrapper<R(TArgs...)>
+	{
+		static constexpr int count{sizeof...(TArgs)}; using ParamsType = std::tuple<TArgs...>;
+		template<typename T> static std::tuple<R> call(const T& fn, ParamsType mTpl) { return std::tuple<R>{explode(fn, mTpl)}; }
+	};
+
 	/**
 	 * @brief Defines a Lua context
 	 *
@@ -125,8 +171,6 @@ namespace Lua
 			template<typename T, typename R, typename... Args> void registerFunction(const std::string& name, R(T::*f)(Args...) volatile)		{ _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
 			template<typename T, typename R, typename... Args> void registerFunction(const std::string& name, R(T::*f)(Args...) const volatile)	{ _registerFunction(name, [f](std::shared_ptr<T> ptr, Args... args) { return ((*ptr).*f)(args...); }); }
 
-
-
 			/// \brief Adds a custom function to a type determined using the function's first parameter
 			/// \sa allowFunction
 			/// \param fn Function which takes as first parameter a std::shared_ptr
@@ -139,7 +183,6 @@ namespace Lua
 			/// \param mVarName Name of the variable containing the function to call
 			/// \param ... Parameters to pass to the function
 			template<typename R, typename... Args> R callLuaFunction(const std::string& mVarName, const Args&... args) { _getGlobal(mVarName); return _call<R>(std::make_tuple(args...)); }
-
 
 			/// \brief Returns true if the value of the variable is an array \param mVarName Name of the variable to check
 			bool isVariableArray(const std::string& mVarName) const { _getGlobal(mVarName); bool answer = lua_istable(_state, -1); lua_pop(_state, 1); return answer; }
@@ -162,14 +205,12 @@ namespace Lua
 			/// \details Accepted values are: all base types (integers, floats), std::string, std::function or ObjectWrapper<...>. All objects are passed by copy and destroyed by the garbage collector.
 			template<typename T> void writeVariable(const std::string& mVarName, T&& data)
 			{
-				static_assert(!std::is_same<typename Tupleizer<T>::type,T>::value, "Error: you can't use LuaContext::writeVariable with a tuple");
+				static_assert(!std::is_same<typename std::tuple<T>, T>::value, "Error: you can't use LuaContext::writeVariable with a tuple");
 				const int pushedElems = _push(std::forward<T>(data));
 				try { _setGlobal(mVarName); }
 				catch(...) { lua_pop(_state, pushedElems - 1); throw; }
 				lua_pop(_state, pushedElems - 1);
 			}
-
-
 
 		private:
 			// the state is the most important variable in the class since it is our interface with Lua
@@ -284,7 +325,7 @@ namespace Lua
 			//              (where type is the first parameter of the functor)
 			template<typename T> void _registerFunction(const std::string& name, T function)
 			{
-				typedef typename RemoveMemberPtr<decltype(&T::operator())>::type FunctionType;
+				typedef typename RemoveMemberPtr<decltype(&T::operator())>::Type FunctionType;
 				typedef typename std::tuple_element<0,typename FnTupleWrapper<FunctionType>::ParamsType>::type::element_type ObjectType;
 
 				// trying to get the existing functions list
@@ -377,7 +418,7 @@ namespace Lua
 				try
 				{
 					// we push the parameters on the stack
-					outArguments = std::tuple_size<typename Tupleizer<Out>::type>::value;
+					outArguments = std::tuple_size<typename std::tuple<Out>>::value;
 					inArguments = _push(in);
 				}
 				catch(...) { lua_pop(_state, 1); throw; }
@@ -524,7 +565,7 @@ namespace Lua
 			template<typename T> int _push(T fn, decltype(&T::operator()) = nullptr)
 			{
 				// the () operator has type "R(T::*)(Args)", this typedef converts it to "R(Args)"
-				typedef typename RemoveMemberPtr<decltype(&T::operator())>::type FnType;
+				typedef typename RemoveMemberPtr<decltype(&T::operator())>::Type FnType;
 
 				// when the lua script calls the thing we will push on the stack, we want "fn" to be executed
 				// if we used lua's cfunctions system, we could not detect when the function is no longer in use, which could cause problems
@@ -543,7 +584,7 @@ namespace Lua
 					// the first two correspond to the params list and return type as tuples
 					//   and "call" is a static function which will call a function
 					//   of this type using parameters passed as a tuple
-					using TupledFunction = LuaContext::FnTupleWrapper<FnType> ;
+					using TupledFunction = FnTupleWrapper<FnType> ;
 
 					// checking if number of parameters is correct
 					const int paramsCount = TupledFunction::count;
@@ -830,29 +871,17 @@ namespace Lua
 				return std::tuple_cat(std::make_tuple(_read(index, static_cast<First*>(nullptr))), _read(index + 1, static_cast<std::tuple<Args...>*>(nullptr)));
 			}
 			std::tuple<> _read(int, std::tuple<> const* = nullptr) const { return std::tuple<>(); }
-
-
-
-			/**************************************************/
-			/*                   UTILITIES                    */
-			/**************************************************/
-			template<typename FnType> struct FnTupleWrapper;
-			template<typename T> struct Tupleizer;
-			template<typename Fn> struct RemoveMemberPtr;
 	};
 
 	template<typename T> struct IsFunctor
 	{
 		using one = char;
 		using two = long;
-
 		template<typename C> static one test(decltype(&C::operator())) ;
 		template<typename C> static two test(...);
-
 		enum{value = sizeof(test<T>(0)) == sizeof(char)};
 	};
 
-	// you must be able to convert T to ToPushableType<T>::type
 	template<typename T>	struct LuaContext::ToPushableType<T&>																	{ using type = typename ToPushableType<T>::type; };
 	template<typename T>	struct LuaContext::ToPushableType<const T&>																{ using type = typename ToPushableType<T>::type; };
 	template<typename T>	struct LuaContext::ToPushableType<T, typename std::enable_if<std::is_integral<T>::value>::type>			{ using type = lua_Integer; };
@@ -866,57 +895,6 @@ namespace Lua
 	template<typename T>	struct LuaContext::ToPushableType<std::shared_ptr<T>>													{ using type = std::shared_ptr<T>; };
 	template<>				struct LuaContext::ToPushableType<LuaContext::Table>													{ using type = LuaContext::Table; };
 	template<typename T>	struct LuaContext::ToPushableType<T, typename std::enable_if<IsFunctor<T>::value>::type>				{ using type = T; };
-
-	// this structure takes a function definition as template parameter and defines three things:
-	// a ParamsType type which converts the function parameters into a tuple,
-	// a ReturnType type which is either std::tuple<> (if void) or std::tuple<original return type>
-	// a call function which calls the function using a tuple of type ParamsType, and returns ReturnType
-	template<typename FnType> struct LuaContext::FnTupleWrapper { };
-
-	namespace detail
-	{
-		template<typename R, typename F, typename Tuple, bool Done, int Total, int... N> struct callTplImpl
-		{
-			inline static R call(F f, Tuple&& t) { return callTplImpl<R, F, Tuple, Total == 1 + sizeof...(N), Total, N..., sizeof...(N)>::call(f, std::forward<Tuple>(t)); }
-		};
-
-		template<typename R, typename F, typename Tuple, int Total, int... N> struct callTplImpl<R, F, Tuple, true, Total, N...>
-		{
-			inline static R call(F f, Tuple&& t) { return f(std::get<N>(std::forward<Tuple>(t))...); }
-		};
-	}
-
-	template<typename R, typename F, typename Tuple> R callTpl(F f, Tuple && t)
-	{
-		typedef typename std::decay<Tuple>::type ttype;
-		return detail::callTplImpl<R, F, Tuple, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>::call(f, std::forward<Tuple>(t));
-	}
-
-
-	template<typename... TArgs> struct LuaContext::FnTupleWrapper<void(TArgs...)>
-	{
-		static const int count = sizeof...(TArgs); using ParamsType = std::tuple<TArgs...>;
-		template<typename T> static std::tuple<> call(const T& fn, ParamsType mTpl) { callTpl<void>(fn, mTpl); return std::tuple<>(); }
-	};
-	template<typename R, typename... TArgs> struct LuaContext::FnTupleWrapper<R(TArgs...)>
-	{
-		static const int count = sizeof...(TArgs); using ParamsType = std::tuple<TArgs...>;
-		template<typename T> static std::tuple<R> call(const T& fn, ParamsType mTpl) { return std::tuple<R>(callTpl<R>(fn, mTpl)); }
-	};
-
-	// this structure takes a member function pointer and returns its base type
-	// typically used on a functor T, like: std::function<RemoveMemberPtr<decltype(&T::operator())>::type>
-	template<typename R, typename T, typename... Args> struct LuaContext::RemoveMemberPtr<R(T::*)(Args...)> { typedef R(type)(Args...); };
-	template<typename R, typename T, typename... Args> struct LuaContext::RemoveMemberPtr<R(T::*)(Args...) const> { typedef R(type)(Args...); };
-	template<typename R, typename T, typename... Args> struct LuaContext::RemoveMemberPtr<R(T::*)(Args...) volatile> { typedef R(type)(Args...); };
-	template<typename R, typename T, typename... Args> struct LuaContext::RemoveMemberPtr<R(T::*)(Args...) const volatile> { typedef R(type)(Args...); };
-
-	// this structure takes a template parameter T
-	// if T is a tuple, it returns T ; if T is not a tuple, it returns std::tuple<T>
-	// you have to use this structure because std::tuple<std::tuple<...>> triggers a bug in both MSVC++ and GCC
-	template<typename T> struct LuaContext::Tupleizer								{ using type = std::tuple<T>; };
-	template<typename... TArgs> struct LuaContext::Tupleizer<std::tuple<TArgs...>>	{ using type = std::tuple<TArgs...>; };
-	template<> struct LuaContext::Tupleizer<void>									{ using type = std::tuple<>; };
 }
 
 #endif
