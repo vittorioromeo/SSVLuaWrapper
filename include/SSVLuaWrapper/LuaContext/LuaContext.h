@@ -130,7 +130,7 @@ namespace Lua
 
 				// lua_newstate can return null if allocation failed
 				_state = lua_newstate(&Allocator::allocator, nullptr);
-				if(_state == nullptr) throw(std::bad_alloc());
+				if(_state == nullptr) throw std::bad_alloc();
 
 				// opening default library if required to do so
 				if(openDefaultLibs) luaL_openlibs(_state);
