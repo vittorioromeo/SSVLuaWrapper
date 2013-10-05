@@ -378,7 +378,7 @@ namespace Lua
 					std::istream& stream; char buffer[512];
 					Reader(std::istream& str) : stream(str) { }
 
-					// read function ; "data" must be an instance of Reader
+					// read function; "data" must be an instance of Reader
 					static const char* read(lua_State*, void* data, std::size_t* size)
 					{
 						assert(size != nullptr);
@@ -584,7 +584,7 @@ namespace Lua
 					// the first two correspond to the params list and return type as tuples
 					//   and "call" is a static function which will call a function
 					//   of this type using parameters passed as a tuple
-					using TupledFunction = FnTupleWrapper<FnType> ;
+					using TupledFunction = FnTupleWrapper<FnType>;
 
 					// checking if number of parameters is correct
 					const int paramsCount = TupledFunction::count;
@@ -877,7 +877,7 @@ namespace Lua
 	{
 		using one = char;
 		using two = long;
-		template<typename C> static one test(decltype(&C::operator())) ;
+		template<typename C> static one test(decltype(&C::operator()));
 		template<typename C> static two test(...);
 		enum{value = sizeof(test<T>(0)) == sizeof(char)};
 	};
