@@ -1,5 +1,5 @@
 FIND_PATH(SSVLUAWRAPPER_INCLUDE_DIR
-  NAMES SSVLuaWrapper/SSVLuaWrapper.h
+  NAMES SSVLuaWrapper/SSVLuaWrapper.hpp
   PATH_SUFFIXES include/
   PATHS "${PROJECT_SOURCE_DIR}/../SSVLuaWrapper/"
   "${PROJECT_SOURCE_DIR}/extlibs/SSVLuaWrapper/"
