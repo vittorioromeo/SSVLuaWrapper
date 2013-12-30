@@ -29,6 +29,9 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// Check out Pierre Krieger's new version of luawrapper here:
+// https://github.com/Tomaka17/luawrapper
+
 #ifndef SSVLUAWRAPPER_LUACONTEXT
 #define SSVLUAWRAPPER_LUACONTEXT
 
@@ -50,9 +53,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern "C"
 {
-	#include <lua5.1/lua.h>
-	#include <lua5.1/lualib.h>
-	#include <lua5.1/lauxlib.h>
+	#include <lua.h>
+	#include <lualib.h>
+	#include <lauxlib.h>
 }
 
 namespace Lua
@@ -394,7 +397,7 @@ namespace Lua
 
 				// we create an instance of Reader, and we call lua_load
 				std::unique_ptr<Reader> reader(new Reader(code));
-				auto loadReturnValue = lua_load(_state, &Reader::read, reader.get(), "chunk");
+				auto loadReturnValue = lua_load(_state, &Reader::read, reader.get(), "chunk", nullptr);
 
 				// now we have to check return value
 				if(loadReturnValue != 0)

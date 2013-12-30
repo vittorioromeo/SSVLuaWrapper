@@ -1,21 +1,21 @@
-FIND_PATH(LUA_INCLUDE_DIR lua5.1/lua.hpp
-	PATHS "${PROJECT_SOURCE_DIR}/../lua/"
-	PATH_SUFFIXES include/ lua/ lua/include/ ./
-	"${PROJECT_SOURCE_DIR}/extlibs/lua/"
-	${LUA_ROOT}
-	$ENV{LUA_ROOT}
-	/usr/local/
-	/usr/
-	/sw/
-	/opt/local/
-	/opt/csw/
-	/opt/
+FIND_PATH(LUA_INCLUDE_DIR lua.hpp
+  PATHS "${PROJECT_SOURCE_DIR}/../lua/"
+  PATH_SUFFIXES include/ lua/ lua/include/ ./
+  "${PROJECT_SOURCE_DIR}/extlibs/lua/"
+  ${LUA_ROOT}
+  $ENV{LUA_ROOT}
+  /usr/local/
+  /usr/
+  /sw/
+  /opt/local/
+  /opt/csw/
+  /opt/
 )
 
 message("\nFound Lua include at: ${LUA_INCLUDE_DIR}.\n")
 
 FIND_LIBRARY(LUA_LIBRARY
-  NAMES lua5.1.lib liblua5.1 lua5.1 lua liblua
+  NAMES liblua5.2 lua5.2 lua liblua
   PATHS "${PROJECT_SOURCE_DIR}/../lua/"
   PATH_SUFFIXES lib/ lib/x86_64-linux-gnu/ lib64/ lua/ lua/lib/ lua/lib64/ ./
   "${PROJECT_SOURCE_DIR}/extlibs/lua/"
@@ -43,7 +43,7 @@ IF(LUA_FOUND)
   MESSAGE(STATUS "Found LUA in ${LUA_INCLUDE_DIR}")
 ELSE(LUA_FOUND)
   IF(LUA_FIND_REQUIRED)
-	MESSAGE(FATAL_ERROR "Could not find LUA library")
+  MESSAGE(FATAL_ERROR "Could not find LUA library")
   ENDIF(LUA_FIND_REQUIRED)
 ENDIF(LUA_FOUND)
 

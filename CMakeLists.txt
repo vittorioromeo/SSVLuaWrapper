@@ -8,13 +8,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "-fno-omit-frame-pointer -g3 -gdwarf-2 -Og" CACHE STRI
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/;${CMAKE_MODULE_PATH}")
 
 find_package(LUA REQUIRED)
-if(LUA_FOUND)
-	include_directories(${LUA_INCLUDE_DIR})
-	message("\nLUA found and included\n")
-else()
-	set(LUA_ROOT "" CACHE PATH "LUA top-level directory")
-	message("\n-> LUA directory not found. Set SSVUTILS_ROOT to SSVUtils' top-level path (containing both \"include\" and \"lib\" directories).")
-endif()
 
 set(SRC_DIR "src")
 set(INC_DIR "include")
