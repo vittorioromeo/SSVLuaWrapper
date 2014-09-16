@@ -62,32 +62,26 @@ namespace Lua
 {
 	namespace Internal
 	{
-		template<unsigned K, class F, class Tup> struct Expander
+		template<std::size_t N> struct Exploder
 		{
-			template<class... Us> static auto expand(F&& f, Tup&& t, Us&&... args)
-				-> decltype(Expander<K - 1, F, Tup>::expand(std::forward<F>(f), std::forward<Tup>(t), std::get<K - 1>(std::forward<Tup>(t)), std::forward<Us>(args)...))
+			template<typename TF, typename T, typename... TArgs> inline static auto explode(TF&& mF, T&& mT, TArgs&&... mArgs)
 			{
-				return Expander<K - 1, F, Tup>::expand(std::forward<F>(f), std::forward<Tup>(t), std::get<K - 1>(std::forward<Tup>(t)), std::forward<Us>(args)...);
+				return Exploder<N - 1>::explode(std::forward<TF>(mF), std::forward<T>(mT), ::std::get<N - 1>(std::forward<T>(mT)), std::forward<TArgs>(mArgs)...);
 			}
 		};
 
-		template<class F, class Tup> struct Expander<0, F, Tup>
+		template<> struct Exploder<0>
 		{
-			template<class... Us> static auto expand(F&& f, Tup&&, Us&&... args) -> decltype(f(std::forward<Us>(args)...)) { return f(std::forward<Us>(args)...); }
+			template<typename TF, typename T, typename... TArgs> inline static auto explode(TF&& mF, T&&, TArgs&&... mArgs)
+			{
+				return std::forward<TF>(mF)(std::forward<TArgs>(mArgs)...);
+			}
 		};
 	}
 
-	template<class F, class... Ts> auto explode(F&& f, const std::tuple<Ts...>& t) -> decltype(Internal::Expander<sizeof...(Ts), F, const std::tuple<Ts...>&>::expand(std::forward<F>(f), t))
+	template<typename F, typename T> inline auto explode(F&& f, T&& t)
 	{
-		return Internal::Expander<sizeof...(Ts), F, const std::tuple<Ts...>&>::expand(std::forward<F>(f), t);
-	}
-	template<class F, class... Ts> auto explode(F&& f, std::tuple<Ts...>& t) -> decltype(Internal::Expander<sizeof...(Ts), F, std::tuple<Ts...>&>::expand(std::forward<F>(f), t))
-	{
-		return Internal::Expander<sizeof...(Ts), F, std::tuple<Ts...>&>::expand(std::forward<F>(f), t);
-	}
-	template<class F, class... Ts> auto explode(F&& f, std::tuple<Ts...>&& t) -> decltype(Internal::Expander<sizeof...(Ts), F, std::tuple<Ts...>&&>::expand(std::forward<F>(f), std::move(t)))
-	{
-		return Internal::Expander<sizeof...(Ts), F, std::tuple<Ts...>&&>::expand(std::forward<F>(f), std::move(t));
+		return Internal::Exploder<std::tuple_size<std::decay_t<T>>::value>::explode(std::forward<F>(f), std::forward<T>(t));
 	}
 
 	template<typename> struct RemoveMemberPtr;
