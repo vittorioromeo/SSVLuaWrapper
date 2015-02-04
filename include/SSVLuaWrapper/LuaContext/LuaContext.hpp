@@ -60,7 +60,7 @@ extern "C"
 
 namespace Lua
 {
-	namespace Internal
+	namespace Impl
 	{
 		template<std::size_t N> struct Exploder
 		{
@@ -81,7 +81,7 @@ namespace Lua
 
 	template<typename F, typename T> inline auto explode(F&& f, T&& t)
 	{
-		return Internal::Exploder<std::tuple_size<std::decay_t<T>>::value>::explode(std::forward<F>(f), std::forward<T>(t));
+		return Impl::Exploder<std::tuple_size<std::decay_t<T>>::value>::explode(std::forward<F>(f), std::forward<T>(t));
 	}
 
 	template<typename> struct RemoveMemberPtr;
