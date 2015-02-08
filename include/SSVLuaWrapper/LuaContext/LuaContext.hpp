@@ -637,7 +637,7 @@ namespace Lua
 				// lua_newuserdata allocates memory in the internals of the lua library and returns it so we can fill it
 				//   and that's what we do with placement-new
 				FunctionPushType* const functionLocation = (FunctionPushType*)lua_newuserdata(_state, sizeof(FunctionPushType));
-				new (functionLocation) FunctionPushType(std::move(functionToPush));
+				new(functionLocation) FunctionPushType(std::move(functionToPush));
 
 				// creating the metatable (over the object on the stack)
 				// lua_settable pops the key and value we just pushed, so stack management is easy
@@ -693,7 +693,7 @@ namespace Lua
 				std::shared_ptr<T>* const pointerLocation = (std::shared_ptr<T>*)lua_newuserdata(_state, sizeof(std::shared_ptr<T>));
 				try
 				{
-					new (pointerLocation) std::shared_ptr<T>(std::move(mObj));
+					new(pointerLocation) std::shared_ptr<T>(std::move(mObj));
 
 					// creating the metatable (over the object on the stack)
 					// lua_settable pops the key and value we just pushed, so stack management is easy
