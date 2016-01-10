@@ -5,6 +5,9 @@
 #ifndef SSVLUAWRAPPER
 #define SSVLUAWRAPPER
 
+// Include as system header to suppress LuaContext warnings.
+#pragma GCC system_header
+
 #include "SSVLuaWrapper/LuaContext/LuaContext.hpp"
 
 #endif
